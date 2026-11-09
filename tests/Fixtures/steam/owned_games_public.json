@@ -1,0 +1,65 @@
+{
+    "response": {
+        "game_count": 9,
+        "games": [
+            {
+                "appid": 440,
+                "name": "Team Fortress 2",
+                "playtime_forever": 4500,
+                "playtime_2weeks": 120,
+                "img_icon_url": "e3f595a92552da3d664ad00277fad2107345f743",
+                "rtime_last_played": 1730000000
+            },
+            {
+                "appid": 570,
+                "name": "Dota 2",
+                "playtime_forever": 90,
+                "img_icon_url": "0bbb630d63262dd66d2fdde8f638a7a2893e0c5a",
+                "rtime_last_played": 1600000000
+            },
+            {
+                "appid": 730,
+                "name": "Counter-Strike 2",
+                "playtime_forever": 12000,
+                "playtime_2weeks": 0,
+                "img_icon_url": "8dbc71957312bbd3baea65848b545be9eae2a355",
+                "rtime_last_played": 1731000000
+            },
+            {
+                "appid": 620,
+                "name": "Portal 2",
+                "playtime_forever": 780,
+                "img_icon_url": "2e5d3b7cfd0ae43b7eb4fd1bfbf8e6a1b9b4c9a1",
+                "rtime_last_played": 1500000000
+            },
+            {
+                "appid": 400,
+                "name": "Portal",
+                "playtime_forever": 0,
+                "img_icon_url": "cfa928ab4119dd137e50d728e8fe703e4e970aff",
+                "rtime_last_played": 0
+            },
+            {
+                "appid": 220,
+                "name": "Half-Life 2",
+                "playtime_forever": 310,
+                "img_icon_url": "fcfb366051782b8ebf2aa297f3b746395858cb62",
+                "rtime_last_played": 1400000000
+            },
+            {
+                "appid": 570,
+                "name": "Dota 2 (duplicate entry)",
+                "playtime_forever": 5,
+                "rtime_last_played": 1600000001
+            },
+            { "name": "Entry without an appid", "playtime_forever": 10 },
+            {
+                "appid": 292030,
+                "name": "The Witcher 3: Wild Hunt",
+                "playtime_forever": 3600,
+                "img_icon_url": "5d1d4a4c2d3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f",
+                "rtime_last_played": 1700000000
+            }
+        ]
+    }
+}

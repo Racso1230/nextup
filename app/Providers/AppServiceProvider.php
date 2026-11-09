@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Listeners\ExtendSocialiteWithSteam;
+use App\Steam\SteamClient;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -18,7 +20,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SteamClient::class, function ($app): SteamClient {
+            $key = config('services.steam.key');
+
+            // An unset key is allowed here: the client throws on first use, so the app still boots.
+            return new SteamClient(is_string($key) ? $key : '', $app->make(Factory::class));
+        });
     }
 
     /**
