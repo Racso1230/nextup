@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\QueueLibraryImport;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +30,7 @@ class SteamLoginController extends Controller
      * (`check_authentication`) before it gives us a user, so the SteamID64 is
      * only ever read from that verified result and never from the query string.
      */
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request, QueueLibraryImport $queueImport): RedirectResponse
     {
         try {
             $steamUser = Socialite::driver('steam')->user();
@@ -60,6 +61,10 @@ class SteamLoginController extends Controller
 
         Auth::login($user, remember: true);
         $request->session()->regenerate();
+
+        if ($user->imported_at === null || $user->imported_at->lt(now()->subHours(6))) {
+            $queueImport($user);
+        }
 
         return redirect()->route('dashboard');
     }

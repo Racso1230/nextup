@@ -9,48 +9,14 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
-use SocialiteProviders\Manager\OAuth2\User as SteamUser;
 
-const STEAM_ID = '76561198000000001';
-
-/**
- * Fake the verified user the Steam provider hands back after check_authentication.
- *
- * @param  array<string, mixed>  $overrides
- */
-function steamUser(array $overrides = []): SteamUser
-{
-    $raw = array_merge([
-        'steamid' => STEAM_ID,
-        'personaname' => 'Gabe',
-        'avatarmedium' => 'https://avatars.steamstatic.com/abc_medium.jpg',
-        'avatarfull' => 'https://avatars.steamstatic.com/abc_full.jpg',
-        'profileurl' => 'https://steamcommunity.com/id/gabe/',
-    ], $overrides);
-
-    return (new SteamUser)->setRaw($raw)->map([
-        'id' => $raw['steamid'],
-        'nickname' => $raw['personaname'],
-        'name' => null,
-        'email' => null,
-        'avatar' => $raw['avatarmedium'],
-    ]);
-}
-
-function fakeSteamProvider(SteamUser|Throwable $result): void
-{
-    $provider = Mockery::mock(Provider::class);
-
-    if ($result instanceof Throwable) {
-        $provider->shouldReceive('user')->andThrow($result);
-    } else {
-        $provider->shouldReceive('user')->andReturn($result);
-    }
-
-    Socialite::shouldReceive('driver')->with('steam')->andReturn($provider);
-}
+beforeEach(function () {
+    // Login queues a library import. The queue is sync in tests, so keep it from calling Steam.
+    Queue::fake();
+});
 
 test('the redirect route sends the user to steam', function () {
     $provider = Mockery::mock(Provider::class);

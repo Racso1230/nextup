@@ -5,10 +5,12 @@ namespace App\Providers;
 use App\Listeners\ExtendSocialiteWithSteam;
 use App\Steam\SteamClient;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use SocialiteProviders\Manager\SocialiteWasCalled;
@@ -36,6 +38,9 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
 
         Event::listen(SocialiteWasCalled::class, ExtendSocialiteWithSteam::class);
+
+        // About one Steam request a second, shared by every user: the cap is per API key.
+        RateLimiter::for('steam', fn () => Limit::perMinute(60));
     }
 
     /**
