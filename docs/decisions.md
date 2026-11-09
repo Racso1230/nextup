@@ -2,6 +2,18 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-09: `games.igdb_id` is indexed, not unique
+
+**What:** the Phase 2 design made `igdb_id` unique. A follow-up migration replaces the unique key with a plain
+index.
+**Why:** IGDB's `external_games` can map several Steam appids to one IGDB game (re-releases, editions, separately
+listed test builds). With a unique key, the second match would throw and fail the whole batch. Two Steam rows
+sharing IGDB metadata is correct: they are different things the user owns, described by the same game.
+**Rejected:** keeping only the first appid matched (the other copy would never get tags), and merging the Steam
+rows (playtime is per appid on Steam, and merging would corrupt snapshots).
+**Consequence:** enrichment updates every `games` row with a given `igdb_id`, and Phase 3 should collapse
+candidates that share an `igdb_id`, so one IGDB game isn't recommended twice.
+
 ## 2026-11-09: Snapshots only when playtime changes
 
 **What:** an import writes a `playtime_snapshots` row for an entry the first time it sees it, and then only when

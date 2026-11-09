@@ -87,18 +87,18 @@ Account deletion removes the user, which cascades to their library entries, thei
 
 ### games: IGDB columns (Phase 2)
 
-| Column                                    | Type                  | Notes                                                                                |
-| ----------------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
-| igdb_id                                   | integer, null, unique | From IGDB `external_games` (Steam source, `uid` = appid)                             |
-| slug                                      | string, null          |                                                                                      |
-| first_release_date                        | date, null            | IGDB gives a Unix timestamp                                                          |
-| cover_image_id                            | string, null          | URL built in one helper: `t_cover_big/<image_id>.jpg`                                |
-| ttb_hastily, ttb_normally, ttb_completely | integer, null         | Seconds, from `game_time_to_beats`. Null means unknown and is never treated as zero. |
-| similar_igdb_ids                          | json, null            | IGDB ids of similar games, used by the Phase 3 recommender                           |
-| match_status                              | string                | `pending` (default), `matched`, `unmatched` or `retrying`. Backed by a PHP enum.     |
-| match_attempts                            | integer, default 0    |                                                                                      |
-| next_match_at                             | timestamp, null       | When an unmatched game is next retried (backoff)                                     |
-| enriched_at                               | timestamp, null       | Last successful metadata fetch                                                       |
+| Column                                    | Type                   | Notes                                                                                |
+| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| igdb_id                                   | integer, null, indexed | From IGDB `external_games` (Steam source, `uid` = appid)                             |
+| slug                                      | string, null           |                                                                                      |
+| first_release_date                        | date, null             | IGDB gives a Unix timestamp                                                          |
+| cover_image_id                            | string, null           | URL built in one helper: `t_cover_big/<image_id>.jpg`                                |
+| ttb_hastily, ttb_normally, ttb_completely | integer, null          | Seconds, from `game_time_to_beats`. Null means unknown and is never treated as zero. |
+| similar_igdb_ids                          | json, null             | IGDB ids of similar games, used by the Phase 3 recommender                           |
+| match_status                              | string                 | `pending` (default), `matched`, `unmatched` or `retrying`. Backed by a PHP enum.     |
+| match_attempts                            | integer, default 0     |                                                                                      |
+| next_match_at                             | timestamp, null        | When an unmatched game is next retried (backoff)                                     |
+| enriched_at                               | timestamp, null        | Last successful metadata fetch                                                       |
 
 Index on `(match_status, next_match_at)` for the retry schedule. Only `matched` games are candidates for
 recommendations. Everything else stays visible in the library but is never ranked.
