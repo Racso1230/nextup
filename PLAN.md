@@ -64,6 +64,7 @@ Goal: a ranked "play this next" list where every pick explains itself. **This is
 Opus owns this phase. Sonnet only writes tests from the spec and the UI.
 
 ### Signals (all normalised to 0..1, defined as small pure classes)
+
 - **Engagement**: hours played relative to time to beat when known (clamped, so 40h on a 10h game saturates);
   otherwise a log-scaled hour count. Used to build the taste vector.
 - **Taste match**: cosine similarity between the user's taste vector (tags weighted by engagement, with
@@ -84,6 +85,7 @@ Starting weights in `config/recommender.php` (tune later with the backtest, do n
 taste 0.35, momentum 0.20, fit 0.15, social 0.10, fresh 0.10, mismatch 0.10.
 
 ### Tasks
+
 1. [Opus] Write `docs/recommender.md`: the signals above, edge cases (no time to beat, no friends, tiny library),
    and what the model deliberately does not do (it is personalised ranking, not collaborative filtering).
 2. [Opus] `app/Recommender/` interfaces and DTOs. Commit: `feat(scoring): add scorer contracts`
@@ -151,6 +153,7 @@ Done when: a stranger can open the demo, understand it in two minutes, and find 
 ---
 
 ## Cross-cutting checklist
+
 - [ ] No secrets in git history
 - [ ] Account deletion works
 - [ ] IGDB credited in the footer, terms checked
