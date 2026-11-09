@@ -39,9 +39,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                // Only what the shell needs. Never share the whole model (steam_id stays server side).
+                'user' => $request->user()?->only(['id', 'persona_name', 'avatar_url', 'profile_url']),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
 }

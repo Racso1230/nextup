@@ -1,35 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/composables/useInitials';
 import type { User } from '@/types';
 
-type Props = {
+defineProps<{
     user: User;
-};
-
-const props = defineProps<Props>();
+}>();
 
 const { getInitials } = useInitials();
-
-const showAvatar = computed(
-    () => props.user.avatar_url && props.user.avatar_url !== '',
-);
 </script>
 
 <template>
-    <Avatar class="h-8 w-8 overflow-hidden rounded-lg">
-        <AvatarImage
-            v-if="showAvatar"
-            :src="user.avatar_url!"
-            :alt="user.persona_name"
-        />
-        <AvatarFallback class="rounded-lg text-black dark:text-white">
+    <Avatar class="size-8">
+        <AvatarImage v-if="user.avatar_url" :src="user.avatar_url" alt="" />
+        <AvatarFallback class="bg-surface-2 text-sm">
             {{ getInitials(user.persona_name) }}
         </AvatarFallback>
     </Avatar>
 
     <div class="grid flex-1 text-left text-sm leading-tight">
-        <span class="truncate font-medium">{{ user.persona_name }}</span>
+        <span class="truncate font-semibold">{{ user.persona_name }}</span>
     </div>
 </template>
