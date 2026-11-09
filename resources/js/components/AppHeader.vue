@@ -1,283 +1,113 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from '@lucide/vue';
+import { ChevronDown } from '@lucide/vue';
 import { computed } from 'vue';
-import AppLogo from '@/components/AppLogo.vue';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    NavigationMenu,
-    NavigationMenuItem,
-    NavigationMenuList,
-    navigationMenuTriggerStyle,
-} from '@/components/ui/navigation-menu';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { getInitials } from '@/composables/useInitials';
-import { toUrl } from '@/lib/utils';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem, NavItem } from '@/types';
+import { useInitials } from '@/composables/useInitials';
+import { library } from '@/routes';
 
-type Props = {
-    breadcrumbs?: BreadcrumbItem[];
+type NavLink = {
+    title: string;
+    /** Absent while the page does not exist yet. */
+    href?: string;
 };
 
-const props = withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
-});
+const navItems: NavLink[] = [
+    { title: 'Play next (soon)' },
+    { title: 'Library', href: library().url },
+];
 
 const page = usePage();
-const auth = computed(() => page.props.auth);
-const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+const user = computed(() => page.props.auth.user);
+const { isCurrentOrParentUrl } = useCurrentUrl();
+const { getInitials } = useInitials();
 
-const activeItemStyles =
-    'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const rightNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const focusRing =
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 </script>
 
 <template>
-    <div>
-        <div class="border-b border-sidebar-border/80">
-            <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
-                <!-- Mobile Menu -->
-                <div class="lg:hidden">
-                    <Sheet>
-                        <SheetTrigger :as-child="true">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="mr-2 h-9 w-9"
-                            >
-                                <Menu class="h-5 w-5" />
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="left" class="w-[300px] p-6">
-                            <SheetTitle class="sr-only"
-                                >Navigation menu</SheetTitle
-                            >
-                            <SheetHeader class="flex justify-start text-left">
-                                <AppLogoIcon
-                                    class="size-6 fill-current text-black dark:text-white"
-                                />
-                            </SheetHeader>
-                            <div
-                                class="flex h-full flex-1 flex-col justify-between space-y-4 py-6"
-                            >
-                                <nav class="-mx-3 space-y-1">
-                                    <Link
-                                        v-for="item in mainNavItems"
-                                        :key="item.title"
-                                        :href="item.href"
-                                        class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-surface-2"
-                                        :class="
-                                            whenCurrentUrl(
-                                                item.href,
-                                                activeItemStyles,
-                                            )
-                                        "
-                                    >
-                                        <component
-                                            v-if="item.icon"
-                                            :is="item.icon"
-                                            class="h-5 w-5"
-                                        />
-                                        {{ item.title }}
-                                    </Link>
-                                </nav>
-                                <div class="flex flex-col space-y-4">
-                                    <a
-                                        v-for="item in rightNavItems"
-                                        :key="item.title"
-                                        :href="toUrl(item.href)"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="flex items-center space-x-2 text-sm font-medium"
-                                    >
-                                        <component
-                                            v-if="item.icon"
-                                            :is="item.icon"
-                                            class="h-5 w-5"
-                                        />
-                                        <span>{{ item.title }}</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </SheetContent>
-                    </Sheet>
-                </div>
-
-                <Link :href="dashboard()" class="flex items-center gap-x-2">
-                    <AppLogo />
-                </Link>
-
-                <!-- Desktop Menu -->
-                <div class="hidden h-full lg:flex lg:flex-1">
-                    <NavigationMenu class="ml-10 flex h-full items-stretch">
-                        <NavigationMenuList
-                            class="flex h-full items-stretch space-x-2"
-                        >
-                            <NavigationMenuItem
-                                v-for="(item, index) in mainNavItems"
-                                :key="index"
-                                class="relative flex h-full items-center"
-                            >
-                                <Link
-                                    :class="[
-                                        navigationMenuTriggerStyle(),
-                                        whenCurrentUrl(
-                                            item.href,
-                                            activeItemStyles,
-                                        ),
-                                        'h-9 cursor-pointer px-3',
-                                    ]"
-                                    :href="item.href"
-                                >
-                                    <component
-                                        v-if="item.icon"
-                                        :is="item.icon"
-                                        class="mr-2 h-4 w-4"
-                                    />
-                                    {{ item.title }}
-                                </Link>
-                                <div
-                                    v-if="isCurrentUrl(item.href)"
-                                    class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
-                                ></div>
-                            </NavigationMenuItem>
-                        </NavigationMenuList>
-                    </NavigationMenu>
-                </div>
-
-                <div class="ml-auto flex items-center space-x-2">
-                    <div class="relative flex items-center space-x-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            class="group h-9 w-9 cursor-pointer"
-                        >
-                            <Search
-                                class="size-5 opacity-80 group-hover:opacity-100"
-                            />
-                        </Button>
-
-                        <div class="hidden space-x-1 lg:flex">
-                            <template
-                                v-for="item in rightNavItems"
-                                :key="item.title"
-                            >
-                                <TooltipProvider :delay-duration="0">
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                as-child
-                                                class="group h-9 w-9 cursor-pointer"
-                                            >
-                                                <a
-                                                    :href="toUrl(item.href)"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <span class="sr-only">{{
-                                                        item.title
-                                                    }}</span>
-                                                    <component
-                                                        :is="item.icon"
-                                                        class="size-5 opacity-80 group-hover:opacity-100"
-                                                    />
-                                                </a>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>{{ item.title }}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </template>
-                        </div>
-                    </div>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger :as-child="true">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
-                            >
-                                <Avatar
-                                    class="size-8 overflow-hidden rounded-full"
-                                >
-                                    <AvatarImage
-                                        v-if="auth.user.avatar"
-                                        :src="auth.user.avatar"
-                                        :alt="auth.user.name"
-                                    />
-                                    <AvatarFallback
-                                        class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white"
-                                    >
-                                        {{ getInitials(auth.user?.name) }}
-                                    </AvatarFallback>
-                                </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-56">
-                            <UserMenuContent :user="auth.user" />
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </div>
-        </div>
-
+    <header class="border-b border-border bg-surface">
         <div
-            v-if="props.breadcrumbs.length > 1"
-            class="flex w-full border-b border-sidebar-border/70"
+            class="flex flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
         >
-            <div
-                class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl"
+            <Link
+                :href="library()"
+                class="rounded-md py-3 font-display text-title leading-none font-bold text-text"
+                :class="focusRing"
             >
-                <Breadcrumbs :breadcrumbs="breadcrumbs" />
-            </div>
+                nextup
+            </Link>
+
+            <!-- Narrow screens: the nav wraps onto a second row, no extra JS. -->
+            <nav
+                aria-label="Main"
+                class="order-last flex w-full gap-6 sm:order-none sm:w-auto sm:flex-1"
+            >
+                <template v-for="item in navItems" :key="item.title">
+                    <Link
+                        v-if="item.href"
+                        :href="item.href"
+                        :aria-current="
+                            isCurrentOrParentUrl(item.href) ? 'page' : undefined
+                        "
+                        class="relative flex h-10 items-center rounded-md text-text sm:h-14"
+                        :class="focusRing"
+                    >
+                        {{ item.title }}
+                        <span
+                            v-if="isCurrentOrParentUrl(item.href)"
+                            class="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                    <span
+                        v-else
+                        aria-disabled="true"
+                        class="flex h-10 items-center text-text-muted sm:h-14"
+                    >
+                        {{ item.title }}
+                    </span>
+                </template>
+            </nav>
+
+            <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                    <button
+                        type="button"
+                        class="flex items-center gap-2 rounded-md p-1 text-text hover:bg-surface-2"
+                        :class="focusRing"
+                    >
+                        <Avatar class="size-8">
+                            <AvatarImage
+                                v-if="user.avatar_url"
+                                :src="user.avatar_url"
+                                alt=""
+                            />
+                            <AvatarFallback class="bg-surface-2 text-sm">
+                                {{ getInitials(user.persona_name) }}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span class="sr-only sm:not-sr-only">{{
+                            user.persona_name
+                        }}</span>
+                        <ChevronDown
+                            class="size-4 text-text-muted"
+                            aria-hidden="true"
+                        />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" class="w-56">
+                    <UserMenuContent :user="user" />
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
-    </div>
+    </header>
 </template>

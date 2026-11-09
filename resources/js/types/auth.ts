@@ -1,29 +1,12 @@
+/** The slice of the user shared with every page (see HandleInertiaRequests). */
 export type User = {
     id: number;
-    name: string;
-    email: string;
-    avatar?: string;
-    email_verified_at: string | null;
-    two_factor_enabled?: boolean;
-    created_at: string;
-    updated_at: string;
+    persona_name: string;
+    avatar_url: string | null;
+    profile_url: string | null;
     [key: string]: unknown;
 };
 
 export type Auth = {
     user: User;
-};
-
-export type Passkey = {
-    id: number;
-    name: string;
-    authenticator: string | null;
-    created_at_diff: string;
-    last_used_at_diff: string | null;
-};
-
-export type TwoFactorConfigContent = {
-    title: string;
-    description: string;
-    buttonText: string;
 };

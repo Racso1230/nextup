@@ -95,6 +95,84 @@ const pairs: Pair[] = [
     { label: 'warning on bg', ratio: '11.5', classes: 'bg-bg text-warning' },
     { label: 'danger on bg', ratio: '6.9', classes: 'bg-bg text-danger' },
 ];
+
+interface Face {
+    name: string;
+    token: string;
+    classes: string;
+    role: string;
+    sample: string;
+}
+
+const faces: Face[] = [
+    {
+        name: 'Big Shoulders Display',
+        token: 'font-display',
+        classes: 'font-display font-bold',
+        role: 'Rank numerals, page titles, the top pick title',
+        sample: '1 Hades II',
+    },
+    {
+        name: 'Atkinson Hyperlegible Next',
+        token: 'font-sans',
+        classes: 'font-sans',
+        role: 'Everything else: reasons, tables, controls, help text',
+        sample: 'Short runs, and two friends played it this week.',
+    },
+    {
+        name: 'Atkinson Hyperlegible Mono',
+        token: 'font-mono',
+        classes: 'font-mono tabular-nums',
+        role: 'Numeric values only: scores, hours, counts',
+        sample: '0.82  142  312',
+    },
+];
+
+interface Step {
+    token: string;
+    spec: string;
+    classes: string;
+    sample: string;
+}
+
+const steps: Step[] = [
+    {
+        token: 'text-rank-xl',
+        spec: '7.5rem / 0.85, display 800',
+        classes: 'font-display text-rank-xl font-extrabold',
+        sample: '1',
+    },
+    {
+        token: 'text-rank',
+        spec: '3rem / 0.9, display 700',
+        classes: 'font-display text-rank font-bold text-text-muted',
+        sample: '2',
+    },
+    {
+        token: 'text-title',
+        spec: '2.25rem / 1.05, display 700',
+        classes: 'font-display text-title font-bold',
+        sample: 'Hades II',
+    },
+    {
+        token: 'text-heading',
+        spec: '1.25rem / 1.3, body 600',
+        classes: 'text-heading font-semibold',
+        sample: 'Why this ranks first',
+    },
+    {
+        token: 'text-base',
+        spec: '1rem / 1.6, body 400',
+        classes: 'text-base',
+        sample: 'Because you put 140 hours into Hades and Dead Cells.',
+    },
+    {
+        token: 'text-sm',
+        spec: '0.875rem / 1.5, body 400',
+        classes: 'text-sm',
+        sample: 'Roguelike, short runs, co-op',
+    },
+];
 </script>
 
 <template>
@@ -158,6 +236,58 @@ const pairs: Pair[] = [
                         <span class="font-mono text-sm">{{ p.ratio }} : 1</span>
                     </li>
                 </ul>
+            </section>
+
+            <section aria-labelledby="type-heading" class="flex flex-col gap-6">
+                <h2 id="type-heading" class="text-xl font-semibold">Type</h2>
+
+                <ul class="flex flex-col gap-4">
+                    <li
+                        v-for="f in faces"
+                        :key="f.token"
+                        class="flex flex-col gap-1 rounded-lg border border-border bg-surface p-4"
+                    >
+                        <span class="text-sm text-text-muted"
+                            >{{ f.name }} (<span class="font-mono">{{
+                                f.token
+                            }}</span
+                            >)</span
+                        >
+                        <span :class="f.classes" class="text-title">{{
+                            f.sample
+                        }}</span>
+                        <span class="text-sm text-text-muted">{{
+                            f.role
+                        }}</span>
+                    </li>
+                </ul>
+
+                <ul class="flex flex-col">
+                    <li
+                        v-for="t in steps"
+                        :key="t.token"
+                        class="flex flex-col gap-1 border-b border-border py-4"
+                    >
+                        <span class="text-sm text-text-muted"
+                            ><span class="font-mono">{{ t.token }}</span
+                            >, {{ t.spec }}</span
+                        >
+                        <span :class="t.classes">{{ t.sample }}</span>
+                    </li>
+                </ul>
+
+                <div class="flex items-end gap-4">
+                    <span
+                        class="font-display text-rank-xl font-extrabold"
+                        aria-hidden="true"
+                        >1</span
+                    >
+                    <p class="pb-2 text-base">
+                        Playtime
+                        <span class="font-mono tabular-nums">142</span>
+                        <span class="text-text-muted">h</span>
+                    </p>
+                </div>
             </section>
 
             <section

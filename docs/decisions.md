@@ -2,6 +2,38 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-09: Subclass the Steam Socialite provider to force https
+
+**What:** `socialiteproviders/steam` (4.6) handles the OpenID assertion correctly: `check_authentication`,
+signed fields, return_to, and a nonce replay check. After that, though, it fetches the profile from
+`http://api.steampowered.com/...?key=...`, over plain http with our API key in the query string.
+`App\Auth\SteamProvider` overrides only that lookup to use https, and our listener registers it as the
+`steam` driver. A test asserts the scheme. Login failures log the exception class only, never the message,
+because Guzzle messages include the request URL.
+**Why:** CLAUDE.md requires that the key never leak. A plain-http request leaks it to every hop on the network.
+**Rejected:** hand-rolling OpenID verification (CLAUDE.md forbids it, and the package's verification is good),
+and patching `vendor/` (lost on the next install).
+**Revisit:** drop the subclass if upstream switches to https.
+
+## 2026-11-09: Steam is the only way to sign in
+
+**What:** the starter kit's Fortify stack (registration, password login and reset, email verification, 2FA,
+passkeys) is removed. Users sign in with Steam OpenID only, and `users` is keyed by `steam_id`. The appearance
+settings are removed at the same time, which closes the follow-up from the dark-only entry.
+**Why:** every feature needs a Steam account anyway, because the library comes from Steam. A second login
+method would double the auth surface to secure and test, and add pages to restyle, without letting anyone do
+anything new. No data exists yet, so the base users migration is edited in place rather than altered.
+**Rejected:** keeping email/password as a fallback (more attack surface, and an account without Steam has
+nothing to show), and linking Steam to email accounts (the same, plus account-merging edge cases).
+
+## 2026-11-09: Library status derived, not stored
+
+**What:** `library_entries` has no status column in Phase 1. The library page derives `unplayed` (0 minutes),
+`recent` (played in the last two weeks) and `played` from playtime.
+**Why:** these come straight from Steam data, so storing them would only let them go stale. A user-set status
+(playing, not tonight, never) has a real source, feedback, and arrives with it in Phase 4.
+**Rejected:** a user-editable status column now (building a feature before the recommender can use it).
+
 ## 2026-11-09: Dark-only theme, Appearance page deferred
 
 **What:** `<html class="dark">` is permanent, and the shadcn variables have a single mapping onto our tokens.

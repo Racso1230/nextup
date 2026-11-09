@@ -27,7 +27,7 @@ Requirements: PHP 8.4+ with `pdo_pgsql` and `redis`, Composer, Node 22+, Docker.
 [Laravel Herd](https://herd.laravel.com) at `https://nextup.test`. Postgres and Redis run in Docker.
 
 ```bash
-docker compose up -d            # Postgres 17 and Redis 7
+docker compose up -d            # Postgres 17 on port 5433, Redis 7 on 6379
 composer install
 cp .env.example .env
 php artisan key:generate

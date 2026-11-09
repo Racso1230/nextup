@@ -155,7 +155,7 @@ Done when: a stranger can open the demo, understand it in two minutes, and find 
 ## Cross-cutting checklist
 
 - [ ] No secrets in git history
-- [ ] Account deletion works
+- [x] Account deletion works
 - [ ] IGDB credited in the footer, terms checked
 - [ ] Reduced-motion tested
 - [ ] Keyboard-only walkthrough done

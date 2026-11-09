@@ -1,0 +1,18 @@
+{
+    "response": {
+        "players": [
+            {
+                "steamid": "76561197960287930",
+                "communityvisibilitystate": 3,
+                "profilestate": 1,
+                "personaname": "Example Player",
+                "profileurl": "https://steamcommunity.com/id/exampleplayer/",
+                "avatar": "https://avatars.steamstatic.com/0000000000000000000000000000000000000000.jpg",
+                "avatarmedium": "https://avatars.steamstatic.com/0000000000000000000000000000000000000000_medium.jpg",
+                "avatarfull": "https://avatars.steamstatic.com/0000000000000000000000000000000000000000_full.jpg",
+                "personastate": 1,
+                "lastlogoff": 1700000000
+            }
+        ]
+    }
+}
