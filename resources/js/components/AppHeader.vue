@@ -11,7 +11,7 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInitials } from '@/composables/useInitials';
-import { dashboard } from '@/routes';
+import { library } from '@/routes';
 
 type NavLink = {
     title: string;
@@ -19,10 +19,9 @@ type NavLink = {
     href?: string;
 };
 
-// TODO: switch "Library" to the Wayfinder helper once the library route exists.
 const navItems: NavLink[] = [
     { title: 'Play next (soon)' },
-    { title: 'Library', href: '/library' },
+    { title: 'Library', href: library().url },
 ];
 
 const page = usePage();
@@ -40,7 +39,7 @@ const focusRing =
             class="flex flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
         >
             <Link
-                :href="dashboard()"
+                :href="library()"
                 class="rounded-md py-3 font-display text-title leading-none font-bold text-text"
                 :class="focusRing"
             >

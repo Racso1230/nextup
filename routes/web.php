@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\SteamLoginController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\LibraryImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +22,8 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::redirect('dashboard', '/library')->name('dashboard');
+    Route::get('library', [LibraryController::class, 'index'])->name('library');
     Route::post('library/import', [LibraryImportController::class, 'store'])
         ->middleware('throttle:3,1')
         ->name('library.import');

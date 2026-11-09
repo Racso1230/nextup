@@ -63,7 +63,7 @@ test('the profile lookup after verification uses https, never plain http', funct
 test('the callback creates a user and logs them in', function () {
     fakeSteamProvider(steamUser());
 
-    $this->get(route('auth.steam.callback'))->assertRedirect(route('dashboard'));
+    $this->get(route('auth.steam.callback'))->assertRedirect(route('library'));
 
     $user = User::where('steam_id', STEAM_ID)->firstOrFail();
     expect($user->persona_name)->toBe('Gabe')
@@ -80,7 +80,7 @@ test('the callback updates an existing user instead of duplicating them', functi
     ]);
     fakeSteamProvider(steamUser(['personaname' => 'New name', 'avatarfull' => 'https://avatars.steamstatic.com/new_full.jpg']));
 
-    $this->get(route('auth.steam.callback'))->assertRedirect(route('dashboard'));
+    $this->get(route('auth.steam.callback'))->assertRedirect(route('library'));
 
     expect(User::where('steam_id', STEAM_ID)->count())->toBe(1);
     $user = User::where('steam_id', STEAM_ID)->firstOrFail();
@@ -137,7 +137,7 @@ test('query parameters on the callback never decide who logs in', function () {
     $this->get(route('auth.steam.callback', [
         'steamid' => '76561198999999999',
         'openid_claimed_id' => 'https://steamcommunity.com/openid/id/76561198999999999',
-    ]))->assertRedirect(route('dashboard'));
+    ]))->assertRedirect(route('library'));
 
     expect(User::where('steam_id', '76561198999999999')->exists())->toBeFalse()
         ->and(auth()->user()?->steam_id)->toBe(STEAM_ID);

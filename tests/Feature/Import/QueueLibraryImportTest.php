@@ -13,7 +13,7 @@ test('login queues an import when the library was never imported', function () {
     $user = User::factory()->create(['steam_id' => STEAM_ID, 'imported_at' => null]);
     fakeSteamProvider(steamUser());
 
-    $this->get(route('auth.steam.callback'))->assertRedirect(route('dashboard'));
+    $this->get(route('auth.steam.callback'))->assertRedirect(route('library'));
 
     Queue::assertPushed(ImportLibrary::class, fn (ImportLibrary $job) => $job->user->is($user));
     expect($user->refresh()->import_status)->toBe(ImportStatus::Queued);
@@ -32,7 +32,7 @@ test('login does not queue an import when the last one was an hour ago', functio
     User::factory()->create(['steam_id' => STEAM_ID, 'imported_at' => now()->subHour()]);
     fakeSteamProvider(steamUser());
 
-    $this->get(route('auth.steam.callback'))->assertRedirect(route('dashboard'));
+    $this->get(route('auth.steam.callback'))->assertRedirect(route('library'));
 
     Queue::assertNothingPushed();
 });
@@ -41,9 +41,9 @@ test('posting to library.import queues an import and shows a toast', function ()
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->from(route('dashboard'))
+        ->from(route('library'))
         ->post(route('library.import'))
-        ->assertRedirect(route('dashboard'))
+        ->assertRedirect(route('library'))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Importing your library.']);
 
     Queue::assertPushed(ImportLibrary::class, 1);

@@ -59,3 +59,25 @@ test('a game with library entries cannot be deleted', function () {
 
     expect(fn () => $entry->game->delete())->toThrow(QueryException::class);
 });
+
+test('the withStatus scope matches the status accessor', function () {
+    $user = User::factory()->create();
+
+    foreach ([[0, null], [0, 0], [120, null], [120, 0], [120, 30], [5, 5]] as [$minutes, $twoWeeks]) {
+        LibraryEntry::factory()->create([
+            'user_id' => $user->id,
+            'playtime_minutes' => $minutes,
+            'playtime_2weeks_minutes' => $twoWeeks,
+        ]);
+    }
+
+    foreach (LibraryStatus::cases() as $status) {
+        $expected = LibraryEntry::all()
+            ->filter(fn (LibraryEntry $entry) => $entry->status === $status)
+            ->pluck('id')->sort()->values()->all();
+        $actual = LibraryEntry::withStatus($status)->pluck('id')->sort()->values()->all();
+
+        expect($expected)->not->toBeEmpty()
+            ->and($actual)->toBe($expected);
+    }
+});
