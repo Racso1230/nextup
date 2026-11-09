@@ -1,0 +1,32 @@
+# Local dev services for nextup (the app itself runs on Laravel Herd).
+services:
+    postgres:
+        image: postgres:17
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: nextup
+            POSTGRES_USER: nextup
+            POSTGRES_PASSWORD: nextup
+        ports:
+            - '5432:5432'
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U nextup -d nextup']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    redis:
+        image: redis:7
+        restart: unless-stopped
+        ports:
+            - '6379:6379'
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    postgres-data:
