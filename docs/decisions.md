@@ -2,6 +2,25 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-09: Steam is the only way to sign in
+
+**What:** the starter kit's Fortify stack (registration, password login and reset, email verification, 2FA,
+passkeys) is removed. Users sign in with Steam OpenID only, and `users` is keyed by `steam_id`. The appearance
+settings are removed at the same time, which closes the follow-up from the dark-only entry.
+**Why:** every feature needs a Steam account anyway, because the library comes from Steam. A second login
+method would double the auth surface to secure and test, and add pages to restyle, without letting anyone do
+anything new. No data exists yet, so the base users migration is edited in place rather than altered.
+**Rejected:** keeping email/password as a fallback (more attack surface, and an account without Steam has
+nothing to show), and linking Steam to email accounts (the same, plus account-merging edge cases).
+
+## 2026-11-09: Library status derived, not stored
+
+**What:** `library_entries` has no status column in Phase 1. The library page derives `unplayed` (0 minutes),
+`recent` (played in the last two weeks) and `played` from playtime.
+**Why:** these come straight from Steam data, so storing them would only let them go stale. A user-set status
+(playing, not tonight, never) has a real source, feedback, and arrives with it in Phase 4.
+**Rejected:** a user-editable status column now (building a feature before the recommender can use it).
+
 ## 2026-11-09: Dark-only theme, Appearance page deferred
 
 **What:** `<html class="dark">` is permanent, and the shadcn variables have a single mapping onto our tokens.
