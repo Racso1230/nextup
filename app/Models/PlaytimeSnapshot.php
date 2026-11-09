@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Database\Factories\PlaytimeSnapshotFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,5 +45,20 @@ class PlaytimeSnapshot extends Model
     public function libraryEntry(): BelongsTo
     {
         return $this->belongsTo(LibraryEntry::class);
+    }
+
+    /**
+     * The entry's lifetime minutes as of a date: the latest snapshot on or before it, or null if none.
+     * No row for a day means "unchanged", so the latest earlier row is the answer.
+     */
+    public static function minutesAsOf(LibraryEntry $entry, CarbonInterface $date): ?int
+    {
+        $minutes = static::query()
+            ->where('library_entry_id', $entry->id)
+            ->whereDate('captured_on', '<=', $date->toDateString())
+            ->orderByDesc('captured_on')
+            ->value('minutes_total');
+
+        return is_numeric($minutes) ? (int) $minutes : null;
     }
 }
