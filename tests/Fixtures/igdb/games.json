@@ -1,0 +1,71 @@
+[
+    {
+        "id": 72,
+        "cover": { "id": 89386, "image_id": "co1rs4" },
+        "first_release_date": 1303171200,
+        "game_modes": [
+            { "id": 1, "name": "Single player" },
+            { "id": 3, "name": "Co-operative" }
+        ],
+        "genres": [
+            { "id": 5, "name": "Shooter" },
+            { "id": 8, "name": "Platform" },
+            { "id": 9, "name": "Puzzle" },
+            { "id": 31, "name": "Adventure" }
+        ],
+        "keywords": [
+            { "id": 1291, "name": "puzzle" },
+            { "id": 2084, "name": "first person" }
+        ],
+        "name": "Portal 2",
+        "player_perspectives": [{ "id": 1, "name": "First person" }],
+        "similar_games": [71, 1030, 7346],
+        "slug": "portal-2",
+        "themes": [
+            { "id": 18, "name": "Science fiction" },
+            { "id": 1, "name": "Action" }
+        ]
+    },
+    {
+        "id": 113112,
+        "cover": { "id": 258765, "image_id": "co39vc" },
+        "first_release_date": 1600905600,
+        "game_modes": [{ "id": 1, "name": "Single player" }],
+        "genres": [
+            { "id": 12, "name": "Role-playing (RPG)" },
+            { "id": 25, "name": "Hack and slash/Beat 'em up" },
+            { "id": 32, "name": "Indie" }
+        ],
+        "keywords": [{ "id": 4130, "name": "roguelike" }],
+        "name": "Hades",
+        "player_perspectives": [{ "id": 3, "name": "Bird view / Isometric" }],
+        "similar_games": [26165, 119133],
+        "slug": "hades--1",
+        "themes": [
+            { "id": 1, "name": "Action" },
+            { "id": 17, "name": "Fantasy" }
+        ]
+    },
+    {
+        "id": 17000,
+        "first_release_date": 1456358400,
+        "game_modes": [
+            { "id": 1, "name": "Single player" },
+            { "id": 2, "name": "Multiplayer" },
+            { "id": 3, "name": "Co-operative" }
+        ],
+        "genres": [
+            { "id": 12, "name": "Role-playing (RPG)" },
+            { "id": 13, "name": "Simulator" },
+            { "id": 32, "name": "Indie" }
+        ],
+        "name": "Stardew Valley",
+        "player_perspectives": [{ "id": 3, "name": "Bird view / Isometric" }],
+        "similar_games": [1942, 10239],
+        "slug": "stardew-valley",
+        "themes": [
+            { "id": 17, "name": "Fantasy" },
+            { "id": 21, "name": "Sandbox" }
+        ]
+    }
+]
