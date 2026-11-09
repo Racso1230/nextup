@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\SteamLoginController;
 use App\Http\Controllers\LibraryController;
@@ -27,5 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::post('library/import', [LibraryImportController::class, 'store'])
         ->middleware('throttle:3,1')
         ->name('library.import');
+    Route::get('account', [AccountController::class, 'show'])->name('account');
+    Route::delete('account', [AccountController::class, 'destroy'])->name('account.destroy');
     Route::post('logout', [SessionController::class, 'destroy'])->name('logout');
 });

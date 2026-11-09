@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { LogOut } from '@lucide/vue';
+import { LogOut, UserRound } from '@lucide/vue';
 import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
-import { logout } from '@/routes';
+import { account, logout } from '@/routes';
 import type { User } from '@/types';
 
 defineProps<{
@@ -26,6 +26,15 @@ const handleLogout = () => {
         </div>
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
+    <DropdownMenuItem
+        :as-child="true"
+        class="focus:outline-offset-[-2px]! focus:outline-accent!"
+    >
+        <Link class="block w-full cursor-pointer" :href="account()">
+            <UserRound class="mr-2 h-4 w-4" aria-hidden="true" />
+            Account
+        </Link>
+    </DropdownMenuItem>
     <DropdownMenuItem
         :as-child="true"
         class="focus:outline-offset-[-2px]! focus:outline-accent!"

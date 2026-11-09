@@ -27,6 +27,11 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     public int $tries = 4;
 
+    /**
+     * If the user deletes their account while an import is queued, drop the job instead of failing it.
+     */
+    public bool $deleteWhenMissingModels = true;
+
     private const int CHUNK = 500;
 
     public function __construct(public User $user) {}
