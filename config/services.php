@@ -1,5 +1,8 @@
 <?php
 
+// Parsed once for the Steam OpenID settings below.
+$appUrl = parse_url((string) env('APP_URL', 'http://localhost')) + ['host' => 'localhost'];
+
 return [
 
     /*
@@ -29,7 +32,19 @@ return [
     ],
 
     'steam' => [
+        // Our own SteamClient reads `key`; the Socialite provider reads the rest.
         'key' => env('STEAM_API_KEY'),
+
+        // SocialiteProviders/Steam settings. The provider has no OAuth client id,
+        // and it uses `client_secret` as the Web API key for its profile lookup.
+        'client_id' => null,
+        'client_secret' => env('STEAM_API_KEY'),
+        'redirect' => rtrim((string) env('APP_URL', 'http://localhost'), '/').'/auth/steam/callback',
+
+        // OpenID realm (host[:port]) and the only host a return_to may use. Both come from APP_URL.
+        'realm' => $appUrl['host'].(isset($appUrl['port']) ? ':'.$appUrl['port'] : ''),
+        'allowed_hosts' => [$appUrl['host']],
+        'force_https' => ($appUrl['scheme'] ?? 'http') === 'https',
     ],
 
     'igdb' => [

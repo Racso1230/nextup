@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
+import { steam } from '@/routes/auth';
 </script>
 
 <template>
@@ -17,9 +17,17 @@ import { Button } from '@/components/ui/button';
                 nextup reads your Steam library, so Steam is the only way to
                 sign in.
             </p>
-            <Button variant="secondary" class="w-full" disabled>
+            <!-- A plain link: this is a full-page redirect off-site, not an Inertia visit. -->
+            <a
+                :href="steam.url()"
+                class="inline-flex h-10 w-full items-center justify-center rounded-md bg-accent px-6 text-sm font-medium text-accent-ink outline-offset-2 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-accent"
+            >
                 Sign in with Steam
-            </Button>
+            </a>
+            <p class="text-sm text-text-muted">
+                nextup only reads your public Steam profile and library. It
+                never sees your password.
+            </p>
         </div>
     </main>
 </template>

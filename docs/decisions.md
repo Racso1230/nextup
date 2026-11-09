@@ -2,6 +2,19 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-09: Subclass the Steam Socialite provider to force https
+
+**What:** `socialiteproviders/steam` (4.6) handles the OpenID assertion correctly: `check_authentication`,
+signed fields, return_to, and a nonce replay check. After that, though, it fetches the profile from
+`http://api.steampowered.com/...?key=...`, over plain http with our API key in the query string.
+`App\Auth\SteamProvider` overrides only that lookup to use https, and our listener registers it as the
+`steam` driver. A test asserts the scheme. Login failures log the exception class only, never the message,
+because Guzzle messages include the request URL.
+**Why:** CLAUDE.md requires that the key never leak. A plain-http request leaks it to every hop on the network.
+**Rejected:** hand-rolling OpenID verification (CLAUDE.md forbids it, and the package's verification is good),
+and patching `vendor/` (lost on the next install).
+**Revisit:** drop the subclass if upstream switches to https.
+
 ## 2026-11-09: Steam is the only way to sign in
 
 **What:** the starter kit's Fortify stack (registration, password login and reset, email verification, 2FA,
