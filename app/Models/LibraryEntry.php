@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -24,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read LibraryStatus $status
  * @property-read Game $game
+ * @property-read PlaytimeSnapshot|null $latestSnapshot
  */
 #[Fillable(['user_id', 'game_id', 'playtime_minutes', 'playtime_2weeks_minutes', 'last_played_at'])]
 class LibraryEntry extends Model
@@ -93,5 +96,21 @@ class LibraryEntry extends Model
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
+    }
+
+    /**
+     * @return HasMany<PlaytimeSnapshot, $this>
+     */
+    public function snapshots(): HasMany
+    {
+        return $this->hasMany(PlaytimeSnapshot::class);
+    }
+
+    /**
+     * @return HasOne<PlaytimeSnapshot, $this>
+     */
+    public function latestSnapshot(): HasOne
+    {
+        return $this->hasOne(PlaytimeSnapshot::class)->latestOfMany('captured_on');
     }
 }
