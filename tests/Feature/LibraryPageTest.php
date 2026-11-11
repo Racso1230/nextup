@@ -2,9 +2,12 @@
 
 use App\Enums\ImportStatus;
 use App\Enums\LibraryVisibility;
+use App\Enums\MatchStatus;
 use App\Models\Game;
 use App\Models\LibraryEntry;
+use App\Models\Tag;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -60,6 +63,10 @@ test('it renders the library with its props', function () {
                 'name' => 'Hades',
                 'app_id' => 1145360,
                 'icon_url' => 'https://media.steampowered.com/steamcommunity/public/images/apps/1145360/abc.jpg',
+                'cover_url' => null,
+                'tags' => [],
+                'tag_overflow' => 0,
+                'match_status' => 'pending',
                 'playtime_minutes' => 600,
                 'last_played_at' => '2026-01-01T10:00:00+00:00',
                 'status' => 'recent',
@@ -233,4 +240,90 @@ test('privacy steps appear only for a private library', function () {
 
     $this->actingAs(User::factory()->create())->get(route('library'))
         ->assertInertia(fn (Assert $page) => $page->where('privacy', null));
+});
+
+test('cover_url uses the IGDB small cover pattern and is null without an image id', function () {
+    $user = User::factory()->create();
+    addEntry($user, 'Covered')->game->update(['cover_image_id' => 'co1abc']);
+    addEntry($user, 'Bare');
+
+    $this->actingAs($user)->get(route('library', ['sort' => 'name']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('entries.data.0.cover_url', null)
+            ->where('entries.data.1.cover_url', 'https://images.igdb.com/igdb/image/upload/t_cover_small/co1abc.jpg'));
+});
+
+test('tags are capped at four in type order with keywords excluded', function () {
+    $user = User::factory()->create();
+    $game = addEntry($user, 'Tagged')->game;
+    $game->tags()->attach([
+        Tag::factory()->perspective()->create(['name' => 'Third person'])->id,
+        Tag::factory()->keyword()->create(['name' => 'Aardvark'])->id,
+        Tag::factory()->gameMode()->create(['name' => 'Single player'])->id,
+        Tag::factory()->theme()->create(['name' => 'Fantasy'])->id,
+        Tag::factory()->genre()->create(['name' => 'Role-playing (RPG)'])->id,
+        Tag::factory()->genre()->create(['name' => 'Adventure'])->id,
+    ]);
+
+    $this->actingAs($user)->get(route('library'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('entries.data.0.tags', [
+                ['name' => 'Adventure', 'type' => 'genre'],
+                ['name' => 'Role-playing (RPG)', 'type' => 'genre'],
+                ['name' => 'Fantasy', 'type' => 'theme'],
+                ['name' => 'Single player', 'type' => 'game_mode'],
+            ])
+            ->where('entries.data.0.tag_overflow', 1));
+});
+
+test('keywords alone produce no tags and no overflow', function () {
+    $user = User::factory()->create();
+    $game = addEntry($user, 'Keywords')->game;
+    $game->tags()->attach(Tag::factory()->keyword()->count(6)->create()->modelKeys());
+
+    $this->actingAs($user)->get(route('library'))
+        ->assertInertia(fn (Assert $page) => $page->where('entries.data.0.tags', [])->where('entries.data.0.tag_overflow', 0));
+});
+
+test('match_status is present and an unmatched game still appears', function () {
+    $user = User::factory()->create();
+    LibraryEntry::factory()->create([
+        'user_id' => $user->id,
+        'game_id' => Game::factory()->unmatched()->create()->id,
+    ]);
+
+    $this->actingAs($user)->get(route('library'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('total', 1)
+            ->where('entries.data.0.match_status', MatchStatus::Unmatched->value));
+});
+
+test('igdb internals are not exposed', function () {
+    $user = User::factory()->create();
+    LibraryEntry::factory()->create([
+        'user_id' => $user->id,
+        'game_id' => Game::factory()->matched()->create()->id,
+    ]);
+
+    $props = $this->actingAs($user)->get(route('library'))->inertiaProps('entries.data.0');
+
+    expect(array_keys($props))->not->toContain('igdb_id')
+        ->and(json_encode($props))->not->toContain('igdb_id');
+});
+
+test('fifty rows with tags use a bounded number of queries', function () {
+    $user = User::factory()->create();
+    $tags = Tag::factory()->genre()->count(6)->create();
+
+    foreach (Game::factory()->matched()->count(50)->create() as $game) {
+        LibraryEntry::factory()->create(['user_id' => $user->id, 'game_id' => $game->id]);
+        $game->tags()->attach($tags->modelKeys());
+    }
+
+    DB::enableQueryLog();
+    $this->actingAs($user)->get(route('library'))->assertOk();
+    $count = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($count)->toBeLessThan(15);
 });

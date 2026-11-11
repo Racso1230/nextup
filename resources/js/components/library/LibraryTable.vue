@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp } from '@lucide/vue';
-import GameIcon from '@/components/library/GameIcon.vue';
+import GameCover from '@/components/library/GameCover.vue';
+import GameTags from '@/components/library/GameTags.vue';
 import LastPlayed from '@/components/library/LastPlayed.vue';
 import PlaytimeValue from '@/components/library/PlaytimeValue.vue';
 import StatusLabel from '@/components/library/StatusLabel.vue';
@@ -92,8 +93,15 @@ function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
             >
                 <td class="px-3 py-2">
                     <span class="flex items-center gap-3">
-                        <GameIcon :name="row.name" :src="row.icon_url" />
-                        <span class="text-text">{{ row.name }}</span>
+                        <GameCover
+                            :name="row.name"
+                            :cover-url="row.cover_url"
+                            :icon-url="row.icon_url"
+                        />
+                        <span class="flex min-w-0 flex-col gap-1">
+                            <span class="text-text">{{ row.name }}</span>
+                            <GameTags :row="row" />
+                        </span>
                     </span>
                 </td>
                 <td class="px-3 py-2 text-right">
@@ -113,21 +121,29 @@ function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
         <li
             v-for="row in rows"
             :key="row.id"
-            class="flex flex-col gap-1 border-b border-border py-3"
+            class="flex gap-3 border-b border-border py-3"
         >
-            <span class="flex items-center gap-3">
-                <GameIcon :name="row.name" :src="row.icon_url" />
-                <span class="min-w-0 text-text">{{ row.name }}</span>
-            </span>
-            <span
-                class="flex flex-wrap items-center gap-x-4 gap-y-1 pl-11 text-sm"
-            >
-                <PlaytimeValue :minutes="row.playtime_minutes" />
-                <span class="text-text-muted">
-                    <LastPlayed :at="row.last_played_at" />
+            <GameCover
+                :name="row.name"
+                :cover-url="row.cover_url"
+                :icon-url="row.icon_url"
+                size="md"
+            />
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+                <span class="min-w-0 break-words text-text">{{
+                    row.name
+                }}</span>
+                <GameTags :row="row" />
+                <span
+                    class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
+                >
+                    <PlaytimeValue :minutes="row.playtime_minutes" />
+                    <span class="text-text-muted">
+                        <LastPlayed :at="row.last_played_at" />
+                    </span>
+                    <StatusLabel :status="row.status" />
                 </span>
-                <StatusLabel :status="row.status" />
-            </span>
+            </div>
         </li>
     </ul>
 </template>
