@@ -2,6 +2,7 @@
 
 namespace App\Recommender;
 
+use App\Recommender\Signals\FitSignal;
 use DateTimeImmutable;
 
 /**
@@ -31,13 +32,20 @@ final class Explainer
             $fragment = $this->fragment($contribution->signal, $ranked, $now);
 
             if ($fragment !== null) {
-                $fragments[] = $fragment;
+                $fragments[$contribution->signal->value] = $fragment;
             }
 
             if (count($fragments) === self::MAX_REASONS) {
                 break;
             }
         }
+
+        // The taste reason is a "Because ..." clause, so it reads best first whatever its weight.
+        if (isset($fragments[SignalName::Taste->value])) {
+            $fragments = [SignalName::Taste->value => $fragments[SignalName::Taste->value]] + $fragments;
+        }
+
+        $fragments = array_values($fragments);
 
         if ($fragments === []) {
             return 'It is one of the better fits in your library right now.';
@@ -78,8 +86,13 @@ final class Explainer
         $sentence = 'because you put '.self::hours($hours).' into '.$names;
 
         if ($ranked->evidenceTags !== []) {
-            // Parentheses keep the tag list from running into the next reason.
-            $sentence .= ' ('.mb_strtolower(implode(', ', $ranked->evidenceTags)).')';
+            // Parentheses keep the tag list from running into the next reason, so IGDB's own bracketed
+            // abbreviations ("Role-playing (RPG)") are dropped to avoid nesting them.
+            $tags = array_map(
+                fn (string $tag): string => mb_strtolower(trim((string) preg_replace('/\s*\([^)]*\)/', '', $tag))),
+                $ranked->evidenceTags,
+            );
+            $sentence .= ' ('.implode(', ', $tags).')';
         }
 
         return $sentence;
@@ -106,11 +119,18 @@ final class Explainer
 
     private function fit(GameFacts $game): ?string
     {
-        if ($game->ttbNormallySeconds === null) {
+        // Unknown length, or already past it: nothing true to say about finishing.
+        if ($game->ttbNormallySeconds === null || FitSignal::pastTimeToBeat($game)) {
             return null;
         }
 
-        $remaining = max(0.0, $game->ttbNormallySeconds / 3600 - $game->playtimeHours());
+        $total = $game->ttbNormallySeconds / 3600;
+
+        if (! $game->isPlayed()) {
+            return 'it\'s about '.self::hours($total).' long';
+        }
+
+        $remaining = $total - $game->playtimeHours();
 
         return $remaining < 1
             ? 'it\'s less than an hour from the end'
