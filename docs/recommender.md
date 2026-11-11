@@ -123,13 +123,13 @@ weights against the leave-one-out and time-split evaluations.
 `Recommender::rank()` returns, for every candidate, the score and each signal's weighted contribution. The
 explanation uses the **top two or three positive contributions**, in plain English:
 
-| Signal    | Sentence fragment                                                                                                                                         |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Taste     | "Because you put 140 hours into Hades and Dead Cells: roguelike, short runs" (the two played games and two shared tags that contribute most to the match) |
-| Momentum  | "you played it 3 days ago" / "you've played 6 hours this fortnight"                                                                                       |
-| Fit       | "about 4 hours left to finish" / "short enough to finish"                                                                                                 |
-| Freshness | "you've never started it"                                                                                                                                 |
-| Mismatch  | Never stated as a reason; when high, the pick usually isn't shown                                                                                         |
+| Signal    | Sentence fragment                                                                                                                                          |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Taste     | "Because you put 140 hours into Hades and Dead Cells (roguelike, short runs)" (the two played games and two shared tags that contribute most to the match) |
+| Momentum  | "you played it 3 days ago" / "you've played 6 hours this fortnight"                                                                                        |
+| Fit       | "it's about 4 hours from the end" / "it's less than an hour from the end"                                                                                  |
+| Freshness | "you've never started it"                                                                                                                                  |
+| Mismatch  | Never stated as a reason; when high, the pick usually isn't shown                                                                                          |
 
 Rules: no fragment for a null signal, numbers always come from real data, and nothing is invented (an unknown
 time to beat never produces a "hours left" claim).
