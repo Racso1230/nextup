@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Actions\RecordPlaytimeSnapshots;
 use App\Enums\ImportStatus;
 use App\Enums\LibraryVisibility;
+use App\Igdb\IgdbStatus;
 use App\Models\Game;
 use App\Models\LibraryEntry;
 use App\Models\User;
@@ -11,6 +13,7 @@ use App\Steam\OwnedGame;
 use App\Steam\SteamApiException;
 use App\Steam\SteamClient;
 use App\Steam\SteamRateLimitedException;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -58,7 +61,7 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return [new RateLimited('steam')];
     }
 
-    public function handle(SteamClient $steam): void
+    public function handle(SteamClient $steam, RecordPlaytimeSnapshots $snapshots, IgdbStatus $igdb): void
     {
         $user = $this->user;
         $user->update(['import_status' => ImportStatus::Running]);
@@ -93,8 +96,9 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        DB::transaction(function () use ($user, $result): void {
+        DB::transaction(function () use ($user, $result, $snapshots): void {
             $this->storeGames($user, $result->games);
+            $snapshots($user, CarbonImmutable::now('UTC')->startOfDay());
 
             $user->fill([
                 'library_visibility' => LibraryVisibility::Public,
@@ -102,6 +106,11 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 'import_status' => ImportStatus::Done,
             ])->save();
         });
+
+        // New games need IGDB ids. The job is globally unique, so simultaneous imports share one run.
+        if ($igdb->configured()) {
+            MatchGames::dispatch();
+        }
     }
 
     public function failed(Throwable $e): void

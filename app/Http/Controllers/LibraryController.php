@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Enums\LibraryVisibility;
+use App\Enums\TagType;
 use App\Http\Requests\LibraryIndexRequest;
+use App\Igdb\IgdbImages;
 use App\Models\LibraryEntry;
+use App\Models\Tag;
 use App\Steam\SteamCdn;
 use App\Steam\SteamPrivacy;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +17,8 @@ use Inertia\Response;
 class LibraryController extends Controller
 {
     private const int PER_PAGE = 50;
+
+    private const int MAX_TAGS = 2;
 
     public function index(LibraryIndexRequest $request): Response
     {
@@ -28,7 +33,8 @@ class LibraryController extends Controller
             ->join('games', 'games.id', '=', 'library_entries.game_id')
             ->where('library_entries.user_id', $user->id)
             ->select('library_entries.*')
-            ->with('game');
+            // Only genres and themes are shown, so load nothing else (keywords average about 10 per game).
+            ->with(['game.tags' => fn ($tags) => $tags->whereIn('tags.type', [TagType::Genre->value, TagType::Theme->value])]);
 
         if ($status !== null) {
             $query->withStatus($status);
@@ -41,6 +47,7 @@ class LibraryController extends Controller
         match ($sort) {
             'name' => $query->orderByRaw("lower(games.name) {$direction}"),
             'playtime' => $query->orderBy('library_entries.playtime_minutes', $direction),
+            'status' => $query->orderByRaw(LibraryEntry::STATUS_RANK_SQL.' '.$direction),
             // Never-played games go last whichever way the dates run (portable: no NULLS LAST).
             default => $query->orderByRaw('library_entries.last_played_at is null')
                 ->orderBy('library_entries.last_played_at', $direction),
@@ -50,15 +57,7 @@ class LibraryController extends Controller
         $query->orderByRaw('lower(games.name) asc')->orderBy('library_entries.id');
 
         $entries = $query->paginate(self::PER_PAGE)->withQueryString()->through(
-            fn (LibraryEntry $entry): array => [
-                'id' => $entry->id,
-                'name' => $entry->game->name,
-                'app_id' => $entry->game->steam_appid,
-                'icon_url' => SteamCdn::iconUrl($entry->game->steam_appid, $entry->game->icon_hash),
-                'playtime_minutes' => $entry->playtime_minutes,
-                'last_played_at' => $entry->last_played_at?->toIso8601String(),
-                'status' => $entry->status->value,
-            ],
+            fn (LibraryEntry $entry): array => $this->row($entry),
         );
 
         $isPrivate = $user->library_visibility === LibraryVisibility::Private;
@@ -71,6 +70,7 @@ class LibraryController extends Controller
                 'status' => $status?->value,
                 'q' => $search,
             ],
+            'status_counts' => $this->statusCounts($user->id, $search),
             'total' => LibraryEntry::query()->where('user_id', $user->id)->count(),
             'import' => [
                 'status' => $user->import_status->value,
@@ -81,6 +81,69 @@ class LibraryController extends Controller
                 ? ['settings_url' => SteamPrivacy::SETTINGS_URL, 'steps' => SteamPrivacy::steps()]
                 : null,
         ]);
+    }
+
+    /**
+     * Entries per status for the current search, ignoring the status filter, so each segment's count
+     * matches what choosing it would show. One grouped query.
+     *
+     * @return array{all: int, unplayed: int, recent: int, played: int}
+     */
+    private function statusCounts(int $userId, ?string $search): array
+    {
+        $query = LibraryEntry::query()
+            ->join('games', 'games.id', '=', 'library_entries.game_id')
+            ->where('library_entries.user_id', $userId);
+
+        if ($search !== null) {
+            $this->whereNameContains($query, $search);
+        }
+
+        $counts = $query
+            ->selectRaw(LibraryEntry::STATUS_SQL.' as status, count(*) as aggregate')
+            ->groupByRaw(LibraryEntry::STATUS_SQL)
+            ->pluck('aggregate', 'status')
+            ->map(fn (mixed $count): int => is_numeric($count) ? (int) $count : 0);
+
+        $unplayed = $counts->get('unplayed', 0);
+        $recent = $counts->get('recent', 0);
+        $played = $counts->get('played', 0);
+
+        return ['all' => $unplayed + $recent + $played, 'unplayed' => $unplayed, 'recent' => $recent, 'played' => $played];
+    }
+
+    /**
+     * One table row. Deliberately omits igdb_id and the other internals the UI does not use.
+     *
+     * @return array<string, mixed>
+     */
+    private function row(LibraryEntry $entry): array
+    {
+        $game = $entry->game;
+
+        // Only genres and themes are shown (the rest stay in the database for the recommender).
+        // Genres come first, so themes only fill the slots genres leave free.
+        $order = [TagType::Genre, TagType::Theme];
+        $display = $game->tags
+            ->filter(fn (Tag $tag): bool => in_array($tag->type, $order, true))
+            ->sort(fn (Tag $a, Tag $b): int => [array_search($a->type, $order, true), mb_strtolower($a->name)]
+                <=> [array_search($b->type, $order, true), mb_strtolower($b->name)])
+            ->values();
+
+        return [
+            'id' => $entry->id,
+            'name' => $game->name,
+            'app_id' => $game->steam_appid,
+            'icon_url' => SteamCdn::iconUrl($game->steam_appid, $game->icon_hash),
+            'cover_url' => IgdbImages::coverUrl($game->cover_image_id, 'cover_small'),
+            'tags' => $display->take(self::MAX_TAGS)
+                ->map(fn (Tag $tag): array => ['name' => $tag->name, 'type' => $tag->type->value])
+                ->all(),
+            'match_status' => $game->match_status->value,
+            'playtime_minutes' => $entry->playtime_minutes,
+            'last_played_at' => $entry->last_played_at?->toIso8601String(),
+            'status' => $entry->status->value,
+        ];
     }
 
     /**

@@ -35,8 +35,8 @@ from the database and pass props to Vue.
 
 ## Tables
 
-Sign-in is Steam only, so a user is identified by their SteamID64. Phase 2 adds IGDB metadata, `match_status`
-and `playtime_snapshots`.
+Sign-in is Steam only, so a user is identified by their SteamID64. Phase 2 adds IGDB metadata on `games`,
+`tags`, and `playtime_snapshots`.
 
 ### users
 
@@ -83,4 +83,55 @@ Indexes: unique `(user_id, game_id)`, and `(user_id, last_played_at)` for the li
 Status (`unplayed`, `played`, `recent`) is derived from playtime, not stored. A user-set status arrives with
 feedback in Phase 4.
 
-Account deletion removes the user, which cascades to their library entries and ends their sessions.
+Account deletion removes the user, which cascades to their library entries, their snapshots and their sessions.
+
+### games: IGDB columns (Phase 2)
+
+| Column                                    | Type                   | Notes                                                                                |
+| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| igdb_id                                   | integer, null, indexed | From IGDB `external_games` (Steam source, `uid` = appid)                             |
+| slug                                      | string, null           |                                                                                      |
+| first_release_date                        | date, null             | IGDB gives a Unix timestamp                                                          |
+| cover_image_id                            | string, null           | URL built in one helper: `t_cover_big/<image_id>.jpg`                                |
+| ttb_hastily, ttb_normally, ttb_completely | integer, null          | Seconds, from `game_time_to_beats`. Null means unknown and is never treated as zero. |
+| similar_igdb_ids                          | json, null             | IGDB ids of similar games, used by the Phase 3 recommender                           |
+| match_status                              | string                 | `pending` (default), `matched`, `unmatched` or `retrying`. Backed by a PHP enum.     |
+| match_attempts                            | integer, default 0     |                                                                                      |
+| next_match_at                             | timestamp, null        | When an unmatched game is next retried (backoff)                                     |
+| enriched_at                               | timestamp, null        | Last successful metadata fetch                                                       |
+
+Index on `(match_status, next_match_at)` for the retry schedule. Only `matched` games are candidates for
+recommendations. Everything else stays visible in the library but is never ranked.
+
+### tags and game_tag
+
+One table for every IGDB tag kind, so the recommender can build one taste vector over all of them.
+
+| Column     | Type      | Notes                                                                            |
+| ---------- | --------- | -------------------------------------------------------------------------------- |
+| id         | bigint PK |                                                                                  |
+| type       | string    | `genre`, `theme`, `game_mode`, `perspective` or `keyword`. Backed by a PHP enum. |
+| igdb_id    | integer   | The id within that IGDB endpoint, so it is only unique per type                  |
+| name       | string    | Untrusted text, escaped on output                                                |
+| timestamps |           |                                                                                  |
+
+Unique `(type, igdb_id)`. The `game_tag` pivot has `game_id` and `tag_id` (both FKs cascading on delete) and
+a primary key `(game_id, tag_id)`.
+
+### playtime_snapshots
+
+Steam only reports lifetime totals, so play sessions are recovered from the differences between snapshots.
+History cannot be fetched later, so collection starts in Phase 2.
+
+| Column           | Type                                  | Notes                                      |
+| ---------------- | ------------------------------------- | ------------------------------------------ |
+| id               | bigint PK                             |                                            |
+| library_entry_id | FK library_entries, cascade on delete |                                            |
+| captured_on      | date                                  | UTC date of the import that saw this total |
+| minutes_total    | integer                               | `playtime_forever` at that moment          |
+| timestamps       |                                       |                                            |
+
+Unique `(library_entry_id, captured_on)`, so re-running an import on the same day updates the row rather than
+adding one. A row is written only on the first import of an entry and when `minutes_total` differs from the
+entry's latest snapshot. A missing day means "unchanged". The total as of any date is the latest row on or
+before it.

@@ -11,7 +11,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class LibraryIndexRequest extends FormRequest
 {
-    public const array SORTS = ['name', 'playtime', 'last_played'];
+    public const array SORTS = ['name', 'playtime', 'last_played', 'status'];
 
     public const int MAX_QUERY_LENGTH = 100;
 
@@ -28,12 +28,13 @@ class LibraryIndexRequest extends FormRequest
         return [];
     }
 
-    /** @return 'name'|'playtime'|'last_played' */
+    /** @return 'name'|'playtime'|'last_played'|'status' */
     public function sortColumn(): string
     {
         return match ($this->rawString('sort')) {
             'name' => 'name',
             'playtime' => 'playtime',
+            'status' => 'status',
             default => 'last_played',
         };
     }
@@ -44,7 +45,7 @@ class LibraryIndexRequest extends FormRequest
         return match ($this->rawString('direction')) {
             'asc' => 'asc',
             'desc' => 'desc',
-            default => $this->sortColumn() === 'name' ? 'asc' : 'desc',
+            default => in_array($this->sortColumn(), ['name', 'status'], true) ? 'asc' : 'desc',
         };
     }
 

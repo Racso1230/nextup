@@ -36,11 +36,11 @@ const focusRing =
 <template>
     <header class="border-b border-border bg-surface">
         <div
-            class="flex flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
+            class="flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
         >
             <Link
                 :href="library()"
-                class="rounded-md py-3 font-display text-title leading-none font-bold text-text"
+                class="rounded-md py-3 font-display text-2xl leading-none font-bold text-text"
                 :class="focusRing"
             >
                 nextup

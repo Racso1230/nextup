@@ -41,8 +41,14 @@ const focusRing =
                 class="flex flex-col gap-3"
                 #default="{ errors, processing }"
             >
-                <label for="confirmation" class="text-sm text-text">
-                    Type {{ confirmation }} to confirm
+                <label
+                    id="confirmation-label"
+                    for="confirmation"
+                    class="text-sm text-text"
+                >
+                    Type
+                    <span class="font-mono">{{ confirmation }}</span>
+                    to confirm
                 </label>
                 <input
                     id="confirmation"
@@ -69,8 +75,14 @@ const focusRing =
                     <button
                         type="submit"
                         :disabled="processing || typed !== confirmation"
-                        class="h-10 rounded-md border border-danger bg-surface-2 px-4 text-sm font-semibold text-danger transition-colors duration-150 hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
-                        :class="focusRing"
+                        aria-describedby="confirmation-label"
+                        class="h-10 rounded-md border bg-surface-2 px-4 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed"
+                        :class="[
+                            focusRing,
+                            processing || typed !== confirmation
+                                ? 'border-border-strong text-text-muted'
+                                : 'border-danger text-danger hover:bg-border',
+                        ]"
                     >
                         Delete account
                     </button>

@@ -2,6 +2,40 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-09: `games.igdb_id` is indexed, not unique
+
+**What:** the Phase 2 design made `igdb_id` unique. A follow-up migration replaces the unique key with a plain
+index.
+**Why:** IGDB's `external_games` can map several Steam appids to one IGDB game (re-releases, editions, separately
+listed test builds). With a unique key, the second match would throw and fail the whole batch. Two Steam rows
+sharing IGDB metadata is correct: they are different things the user owns, described by the same game.
+**Rejected:** keeping only the first appid matched (the other copy would never get tags), and merging the Steam
+rows (playtime is per appid on Steam, and merging would corrupt snapshots).
+**Consequence:** enrichment updates every `games` row with a given `igdb_id`, and Phase 3 should collapse
+candidates that share an `igdb_id`, so one IGDB game isn't recommended twice.
+
+## 2026-11-09: Snapshots only when playtime changes
+
+**What:** an import writes a `playtime_snapshots` row for an entry the first time it sees it, and then only when
+`minutes_total` differs from that entry's latest snapshot. The nightly schedule re-imports every public
+library, so a changed total is captured within a day.
+**Why:** most of a backlog never moves. Writing every game every night is roughly 180k identical rows a year
+for a 500-game library. Storing only changes loses nothing: no row for a day means the total didn't change, and
+the total on any date is the latest row on or before it. That is the query both session derivation and the
+Phase 5 time-split backtest need.
+**Rejected:** a row per game per night (simplest to query, but almost all duplicates), and storing sessions
+directly (Steam has no sessions; they are always derived).
+**Consequence:** a gap is ambiguous between "unchanged" and "the import didn't run". `users.imported_at` tells
+the two apart, and the backtest must treat days with no successful import as unknown.
+
+## 2026-11-09: One tags table for every IGDB tag kind
+
+**What:** genres, themes, game modes, perspectives and keywords all live in `tags` with a `type` column, and
+games link to them through one `game_tag` pivot.
+**Why:** the recommender's taste vector and TF-IDF weighting work over "tags" as one vocabulary. One table keeps
+that a single join, and adding a tag kind later needs no migration beyond a new enum case.
+**Rejected:** a table and pivot per kind (10 tables, and every recommender query would have to union them).
+
 ## 2026-11-09: Subclass the Steam Socialite provider to force https
 
 **What:** `socialiteproviders/steam` (4.6) handles the OpenID assertion correctly: `check_authentication`,

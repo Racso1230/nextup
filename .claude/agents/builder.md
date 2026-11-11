@@ -21,6 +21,9 @@ this code, so clear and well-tested beats clever.
   `git diff` and commits.
 - Never edit `CLAUDE.md`, `.env`, or anything in `app/Recommender/` weights or signals.
 - Never add or upgrade a dependency (composer or npm) unless the task says so explicitly.
+- Never run `migrate:fresh`, `db:seed`, `migrate:rollback` or anything destructive against the `nextup` dev
+  database, which holds the developer's real data. For Postgres checks use the `nextup_scratch` database via
+  process env (`DB_DATABASE=nextup_scratch`), or a temp sqlite file.
 - Never call the real Steam or IGDB APIs. Tests use `Http::fake()` with fixtures. No secrets in code, fixtures or logs.
 - No baselines, `@phpstan-ignore` or `--no-verify` shortcuts unless the task allows them. If something is
   impossible to fix properly, report it.

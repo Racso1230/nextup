@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -24,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read LibraryStatus $status
  * @property-read Game $game
+ * @property-read PlaytimeSnapshot|null $latestSnapshot
  */
 #[Fillable(['user_id', 'game_id', 'playtime_minutes', 'playtime_2weeks_minutes', 'last_played_at'])]
 class LibraryEntry extends Model
@@ -63,20 +66,26 @@ class LibraryEntry extends Model
     }
 
     /**
-     * Filter by derived status. Mirrors deriveStatus() in SQL; keep the two in step.
+     * The derived status as a SQL expression yielding 'unplayed', 'recent' or 'played'. This is the one
+     * place the status rules exist in SQL; keep it in step with deriveStatus(). A constant (not a method)
+     * so static analysis can see it is a literal string, never user input.
+     */
+    public const string STATUS_SQL = "case when library_entries.playtime_minutes = 0 then 'unplayed'"
+        ." when coalesce(library_entries.playtime_2weeks_minutes, 0) > 0 then 'recent'"
+        ." else 'played' end";
+
+    /** SQL expression ranking statuses for sorting: unplayed 0, recent 1, played 2. */
+    public const string STATUS_RANK_SQL = 'case '.self::STATUS_SQL." when 'unplayed' then 0 when 'recent' then 1 else 2 end";
+
+    /**
+     * Filter by derived status.
      *
      * @param  Builder<LibraryEntry>  $query
      */
     #[Scope]
     protected function withStatus(Builder $query, LibraryStatus $status): void
     {
-        match ($status) {
-            LibraryStatus::Unplayed => $query->where('library_entries.playtime_minutes', 0),
-            LibraryStatus::Recent => $query->where('library_entries.playtime_minutes', '<>', 0)
-                ->whereRaw('coalesce(library_entries.playtime_2weeks_minutes, 0) > 0'),
-            LibraryStatus::Played => $query->where('library_entries.playtime_minutes', '<>', 0)
-                ->whereRaw('coalesce(library_entries.playtime_2weeks_minutes, 0) <= 0'),
-        };
+        $query->whereRaw('('.self::STATUS_SQL.') = ?', [$status->value]);
     }
 
     /**
@@ -93,5 +102,21 @@ class LibraryEntry extends Model
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
+    }
+
+    /**
+     * @return HasMany<PlaytimeSnapshot, $this>
+     */
+    public function snapshots(): HasMany
+    {
+        return $this->hasMany(PlaytimeSnapshot::class);
+    }
+
+    /**
+     * @return HasOne<PlaytimeSnapshot, $this>
+     */
+    public function latestSnapshot(): HasOne
+    {
+        return $this->hasOne(PlaytimeSnapshot::class)->latestOfMany('captured_on');
     }
 }
