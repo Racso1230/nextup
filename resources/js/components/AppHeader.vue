@@ -35,7 +35,7 @@ const focusRing =
 <template>
     <header class="border-b border-border bg-surface">
         <div
-            class="flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
+            class="mx-auto flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
         >
             <Link
                 :href="playNext()"

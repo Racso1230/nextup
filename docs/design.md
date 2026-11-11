@@ -55,7 +55,7 @@ Define these in the Tailwind `@theme` as `--text-*` and `--font-display`, `--fon
 ## Spacing and shape
 
 - A 4px base, using the Tailwind default scale. Stick to the steps 1, 2, 3, 4, 6, 8, 12 and 16.
-- Page gutter: 16px on mobile, 32px from `md`. Content max width is 72rem, left aligned. Nothing is centred
+- Page gutter: 16px on mobile, 32px from `md`. Content max width is 72rem, and the column is centred in the window (on wide screens a left-aligned column left half the window empty). Inside the column, content is left aligned; nothing is centred
   except empty states.
 - Radius follows hierarchy rather than one value for everything:
     - 2px for tags and inputs.
