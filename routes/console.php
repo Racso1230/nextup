@@ -15,3 +15,10 @@ Schedule::command('library:queue-nightly')
     ->timezone('UTC')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Retry unmatched games that are due, and refresh stale metadata. Both jobs are globally unique and
+// rate limited, so an hourly dispatch is cheap when there is nothing to do.
+Schedule::command('igdb:sync')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
