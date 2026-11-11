@@ -65,7 +65,6 @@ test('it renders the library with its props', function () {
                 'icon_url' => 'https://media.steampowered.com/steamcommunity/public/images/apps/1145360/abc.jpg',
                 'cover_url' => null,
                 'tags' => [],
-                'tag_overflow' => 0,
                 'match_status' => 'pending',
                 'playtime_minutes' => 600,
                 'last_played_at' => '2026-01-01T10:00:00+00:00',
@@ -74,6 +73,7 @@ test('it renders the library with its props', function () {
             ->where('entries.current_page', 1)
             ->where('entries.last_page', 1)
             ->where('filters', ['sort' => 'last_played', 'direction' => 'desc', 'status' => null, 'q' => null])
+            ->where('status_counts', ['all' => 1, 'unplayed' => 0, 'recent' => 1, 'played' => 0])
             ->where('total', 1)
             ->where('import.status', 'done')
             ->where('import.visibility', 'public')
@@ -169,6 +169,63 @@ test('the status filter returns only matching entries', function (string $status
     'recent' => ['recent', 'R'],
 ]);
 
+test('status counts cover the whole library and ignore the status filter', function () {
+    $user = User::factory()->create();
+    addEntry($user, 'U1', ['playtime_minutes' => 0, 'playtime_2weeks_minutes' => null, 'last_played_at' => null]);
+    addEntry($user, 'U2', ['playtime_minutes' => 0, 'playtime_2weeks_minutes' => null, 'last_played_at' => null]);
+    addEntry($user, 'P', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => null]);
+    addEntry($user, 'R', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => 20]);
+    addEntry(User::factory()->create(), 'Someone else');
+
+    $expected = ['all' => 4, 'unplayed' => 2, 'recent' => 1, 'played' => 1];
+
+    $this->actingAs($user)->get(route('library'))
+        ->assertInertia(fn (Assert $page) => $page->where('status_counts', $expected));
+    $this->actingAs($user)->get(route('library', ['status' => 'recent']))
+        ->assertInertia(fn (Assert $page) => $page->where('status_counts', $expected)->has('entries.data', 1));
+});
+
+test('status counts respect the search', function () {
+    $user = User::factory()->create();
+    addEntry($user, 'Hades', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => 20]);
+    addEntry($user, 'Hades II', ['playtime_minutes' => 0, 'playtime_2weeks_minutes' => null, 'last_played_at' => null]);
+    addEntry($user, 'Stardew', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => null]);
+
+    $this->actingAs($user)->get(route('library', ['q' => 'hades']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('status_counts', ['all' => 2, 'unplayed' => 1, 'recent' => 1, 'played' => 0])
+            ->where('total', 3));
+});
+
+test('it sorts by status: unplayed, recent, played, and reversed', function () {
+    $user = User::factory()->create();
+    addEntry($user, 'B played', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => null]);
+    addEntry($user, 'A played', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => null]);
+    addEntry($user, 'Recent', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => 20]);
+    addEntry($user, 'Unplayed', ['playtime_minutes' => 0, 'playtime_2weeks_minutes' => null, 'last_played_at' => null]);
+
+    expect(libraryNames($user, ['sort' => 'status']))->toBe(['Unplayed', 'Recent', 'A played', 'B played'])
+        ->and(libraryNames($user, ['sort' => 'status', 'direction' => 'desc']))->toBe(['A played', 'B played', 'Recent', 'Unplayed']);
+
+    $this->actingAs($user)->get(route('library', ['sort' => 'status']))
+        ->assertInertia(fn (Assert $page) => $page->where('filters.sort', 'status')->where('filters.direction', 'asc'));
+});
+
+test('the status SQL expression matches the derived status accessor', function () {
+    $user = User::factory()->create();
+    $entries = [
+        addEntry($user, 'U', ['playtime_minutes' => 0, 'playtime_2weeks_minutes' => null, 'last_played_at' => null]),
+        addEntry($user, 'R', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => 20]),
+        addEntry($user, 'P', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => null]),
+        addEntry($user, 'P0', ['playtime_minutes' => 50, 'playtime_2weeks_minutes' => 0]),
+    ];
+
+    foreach ($entries as $entry) {
+        $sql = LibraryEntry::query()->whereKey($entry->id)->selectRaw(LibraryEntry::STATUS_SQL.' as s')->value('s');
+        expect($sql)->toBe($entry->status->value);
+    }
+});
+
 test('search is case-insensitive', function () {
     $user = User::factory()->create();
     addEntry($user, 'Stardew Valley');
@@ -253,7 +310,7 @@ test('cover_url uses the IGDB small cover pattern and is null without an image i
             ->where('entries.data.1.cover_url', 'https://images.igdb.com/igdb/image/upload/t_cover_small/co1abc.jpg'));
 });
 
-test('tags are capped at four in type order with keywords excluded', function () {
+test('tags are capped at two, genres first, in name order', function () {
     $user = User::factory()->create();
     $game = addEntry($user, 'Tagged')->game;
     $game->tags()->attach([
@@ -270,19 +327,36 @@ test('tags are capped at four in type order with keywords excluded', function ()
             ->where('entries.data.0.tags', [
                 ['name' => 'Adventure', 'type' => 'genre'],
                 ['name' => 'Role-playing (RPG)', 'type' => 'genre'],
-                ['name' => 'Fantasy', 'type' => 'theme'],
-                ['name' => 'Single player', 'type' => 'game_mode'],
             ])
-            ->where('entries.data.0.tag_overflow', 1));
+            ->missing('entries.data.0.tag_overflow'));
 });
 
-test('keywords alone produce no tags and no overflow', function () {
+test('themes fill the tag slots that genres leave free', function () {
+    $user = User::factory()->create();
+    $game = addEntry($user, 'One genre')->game;
+    $game->tags()->attach([
+        Tag::factory()->theme()->create(['name' => 'Fantasy'])->id,
+        Tag::factory()->theme()->create(['name' => 'Horror'])->id,
+        Tag::factory()->genre()->create(['name' => 'Adventure'])->id,
+        Tag::factory()->gameMode()->create(['name' => 'Co-op'])->id,
+    ]);
+
+    $this->actingAs($user)->get(route('library'))
+        ->assertInertia(fn (Assert $page) => $page->where('entries.data.0.tags', [
+            ['name' => 'Adventure', 'type' => 'genre'],
+            ['name' => 'Fantasy', 'type' => 'theme'],
+        ]));
+});
+
+test('keywords and game modes alone produce no tags', function () {
     $user = User::factory()->create();
     $game = addEntry($user, 'Keywords')->game;
     $game->tags()->attach(Tag::factory()->keyword()->count(6)->create()->modelKeys());
+    $game->tags()->attach(Tag::factory()->gameMode()->create()->id);
+    $game->tags()->attach(Tag::factory()->perspective()->create()->id);
 
     $this->actingAs($user)->get(route('library'))
-        ->assertInertia(fn (Assert $page) => $page->where('entries.data.0.tags', [])->where('entries.data.0.tag_overflow', 0));
+        ->assertInertia(fn (Assert $page) => $page->where('entries.data.0.tags', [])->missing('entries.data.0.tag_overflow'));
 });
 
 test('match_status is present and an unmatched game still appears', function () {

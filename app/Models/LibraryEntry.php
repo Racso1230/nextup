@@ -66,20 +66,26 @@ class LibraryEntry extends Model
     }
 
     /**
-     * Filter by derived status. Mirrors deriveStatus() in SQL; keep the two in step.
+     * The derived status as a SQL expression yielding 'unplayed', 'recent' or 'played'. This is the one
+     * place the status rules exist in SQL; keep it in step with deriveStatus(). A constant (not a method)
+     * so static analysis can see it is a literal string, never user input.
+     */
+    public const string STATUS_SQL = "case when library_entries.playtime_minutes = 0 then 'unplayed'"
+        ." when coalesce(library_entries.playtime_2weeks_minutes, 0) > 0 then 'recent'"
+        ." else 'played' end";
+
+    /** SQL expression ranking statuses for sorting: unplayed 0, recent 1, played 2. */
+    public const string STATUS_RANK_SQL = 'case '.self::STATUS_SQL." when 'unplayed' then 0 when 'recent' then 1 else 2 end";
+
+    /**
+     * Filter by derived status.
      *
      * @param  Builder<LibraryEntry>  $query
      */
     #[Scope]
     protected function withStatus(Builder $query, LibraryStatus $status): void
     {
-        match ($status) {
-            LibraryStatus::Unplayed => $query->where('library_entries.playtime_minutes', 0),
-            LibraryStatus::Recent => $query->where('library_entries.playtime_minutes', '<>', 0)
-                ->whereRaw('coalesce(library_entries.playtime_2weeks_minutes, 0) > 0'),
-            LibraryStatus::Played => $query->where('library_entries.playtime_minutes', '<>', 0)
-                ->whereRaw('coalesce(library_entries.playtime_2weeks_minutes, 0) <= 0'),
-        };
+        $query->whereRaw('('.self::STATUS_SQL.') = ?', [$status->value]);
     }
 
     /**

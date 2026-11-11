@@ -18,7 +18,7 @@ class LibraryController extends Controller
 {
     private const int PER_PAGE = 50;
 
-    private const int MAX_TAGS = 4;
+    private const int MAX_TAGS = 2;
 
     public function index(LibraryIndexRequest $request): Response
     {
@@ -33,8 +33,8 @@ class LibraryController extends Controller
             ->join('games', 'games.id', '=', 'library_entries.game_id')
             ->where('library_entries.user_id', $user->id)
             ->select('library_entries.*')
-            // Keywords are never displayed, so don't load them (a real library averages about 10 per game).
-            ->with(['game.tags' => fn ($tags) => $tags->where('tags.type', '!=', TagType::Keyword->value)]);
+            // Only genres and themes are shown, so load nothing else (keywords average about 10 per game).
+            ->with(['game.tags' => fn ($tags) => $tags->whereIn('tags.type', [TagType::Genre->value, TagType::Theme->value])]);
 
         if ($status !== null) {
             $query->withStatus($status);
@@ -47,6 +47,7 @@ class LibraryController extends Controller
         match ($sort) {
             'name' => $query->orderByRaw("lower(games.name) {$direction}"),
             'playtime' => $query->orderBy('library_entries.playtime_minutes', $direction),
+            'status' => $query->orderByRaw(LibraryEntry::STATUS_RANK_SQL.' '.$direction),
             // Never-played games go last whichever way the dates run (portable: no NULLS LAST).
             default => $query->orderByRaw('library_entries.last_played_at is null')
                 ->orderBy('library_entries.last_played_at', $direction),
@@ -69,6 +70,7 @@ class LibraryController extends Controller
                 'status' => $status?->value,
                 'q' => $search,
             ],
+            'status_counts' => $this->statusCounts($user->id, $search),
             'total' => LibraryEntry::query()->where('user_id', $user->id)->count(),
             'import' => [
                 'status' => $user->import_status->value,
@@ -82,6 +84,35 @@ class LibraryController extends Controller
     }
 
     /**
+     * Entries per status for the current search, ignoring the status filter, so each segment's count
+     * matches what choosing it would show. One grouped query.
+     *
+     * @return array{all: int, unplayed: int, recent: int, played: int}
+     */
+    private function statusCounts(int $userId, ?string $search): array
+    {
+        $query = LibraryEntry::query()
+            ->join('games', 'games.id', '=', 'library_entries.game_id')
+            ->where('library_entries.user_id', $userId);
+
+        if ($search !== null) {
+            $this->whereNameContains($query, $search);
+        }
+
+        $counts = $query
+            ->selectRaw(LibraryEntry::STATUS_SQL.' as status, count(*) as aggregate')
+            ->groupByRaw(LibraryEntry::STATUS_SQL)
+            ->pluck('aggregate', 'status')
+            ->map(fn (mixed $count): int => is_numeric($count) ? (int) $count : 0);
+
+        $unplayed = $counts->get('unplayed', 0);
+        $recent = $counts->get('recent', 0);
+        $played = $counts->get('played', 0);
+
+        return ['all' => $unplayed + $recent + $played, 'unplayed' => $unplayed, 'recent' => $recent, 'played' => $played];
+    }
+
+    /**
      * One table row. Deliberately omits igdb_id and the other internals the UI does not use.
      *
      * @return array<string, mixed>
@@ -90,9 +121,9 @@ class LibraryController extends Controller
     {
         $game = $entry->game;
 
-        // Keywords stay in the database for the recommender, but there are far too many and they are
-        // too noisy to show, so they never reach the page. Display order is the order of this list.
-        $order = [TagType::Genre, TagType::Theme, TagType::GameMode, TagType::Perspective];
+        // Only genres and themes are shown (the rest stay in the database for the recommender).
+        // Genres come first, so themes only fill the slots genres leave free.
+        $order = [TagType::Genre, TagType::Theme];
         $display = $game->tags
             ->filter(fn (Tag $tag): bool => in_array($tag->type, $order, true))
             ->sort(fn (Tag $a, Tag $b): int => [array_search($a->type, $order, true), mb_strtolower($a->name)]
@@ -108,7 +139,6 @@ class LibraryController extends Controller
             'tags' => $display->take(self::MAX_TAGS)
                 ->map(fn (Tag $tag): array => ['name' => $tag->name, 'type' => $tag->type->value])
                 ->all(),
-            'tag_overflow' => max(0, $display->count() - self::MAX_TAGS),
             'match_status' => $game->match_status->value,
             'playtime_minutes' => $entry->playtime_minutes,
             'last_played_at' => $entry->last_played_at?->toIso8601String(),

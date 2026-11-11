@@ -43,6 +43,7 @@ function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
                             title: 'Last played',
                             align: 'left',
                         },
+                        { key: 'status', title: 'Status', align: 'left' },
                     ] as const"
                     :key="column.key"
                     scope="col"
@@ -76,12 +77,6 @@ function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
                             aria-hidden="true"
                         />
                     </button>
-                </th>
-                <th
-                    scope="col"
-                    class="sticky top-0 z-10 border-b border-border bg-bg px-3 py-2 font-semibold text-text-muted"
-                >
-                    Status
                 </th>
             </tr>
         </thead>

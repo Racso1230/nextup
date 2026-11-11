@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router, usePoll } from '@inertiajs/vue3';
-import { useDebounceFn } from '@vueuse/core';
-import { computed, ref, watch } from 'vue';
+import { X } from '@lucide/vue';
+import { useDebounceFn, useEventListener } from '@vueuse/core';
+import { computed, nextTick, ref, watch } from 'vue';
 import ImportButton from '@/components/library/ImportButton.vue';
 import LibraryTable from '@/components/library/LibraryTable.vue';
 import PrivateLibrary from '@/components/library/PrivateLibrary.vue';
+import { formatDate, formatRelative } from '@/lib/format';
 import { library } from '@/routes';
 import type {
     ImportInfo,
@@ -13,12 +15,14 @@ import type {
     LibraryStatus,
     PrivacyInfo,
     SortColumn,
+    StatusCounts,
 } from '@/types/library';
 
 const props = defineProps<{
     entries: LibraryPage;
     filters: LibraryFilters;
     total: number;
+    status_counts: StatusCounts;
     import: ImportInfo;
     privacy: PrivacyInfo | null;
 }>();
@@ -68,10 +72,12 @@ const showEmpty = computed(
         !showFailed.value,
 );
 const gamesLabel = computed(() => (props.total === 1 ? 'game' : 'games'));
+const importedAt = computed(() => props.import.imported_at);
 
 // --- Filters: every change is an Inertia GET back to this page, from page 1. ---
 const search = ref(props.filters.q ?? '');
 
+// Only user-initiated visits (search, filter, sort) go through here, so only they are announced.
 function visit(overrides: Partial<LibraryFilters>): void {
     const next = { ...props.filters, ...overrides };
     const query: Record<string, string> = {
@@ -91,6 +97,17 @@ function visit(overrides: Partial<LibraryFilters>): void {
         preserveState: true,
         preserveScroll: true,
         replace: true,
+        onSuccess: announce,
+    });
+}
+
+// Live region: announces the result of a user-initiated change, never the initial load or a poll.
+const announcement = ref('');
+
+function announce(): void {
+    void nextTick(() => {
+        const count = props.entries.total;
+        announcement.value = `${count} ${count === 1 ? 'game' : 'games'} shown, sorted by ${props.filters.sort.replace('_', ' ')}, ${props.filters.direction === 'asc' ? 'ascending' : 'descending'}.`;
     });
 }
 
@@ -117,9 +134,40 @@ watch(
     },
 );
 
+const searchInput = ref<HTMLInputElement | null>(null);
+
 function clearSearch(): void {
     search.value = '';
     visitSearch();
+}
+
+function clearSearchAndFocus(): void {
+    clearSearch();
+    searchInput.value?.focus();
+}
+
+// "/" jumps to the search, unless the user is already typing somewhere.
+useEventListener(window, 'keydown', (event: KeyboardEvent) => {
+    if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+    }
+
+    const target = event.target;
+
+    if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+            ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+    ) {
+        return;
+    }
+
+    event.preventDefault();
+    searchInput.value?.focus();
+});
+
+function countLabel(count: number): string {
+    return `${count} ${count === 1 ? 'game' : 'games'}`;
 }
 
 function setStatus(status: LibraryStatus | null): void {
@@ -132,7 +180,11 @@ function sortBy(column: SortColumn): void {
             direction: props.filters.direction === 'asc' ? 'desc' : 'asc',
         });
     } else {
-        visit({ sort: column, direction: column === 'name' ? 'asc' : 'desc' });
+        visit({
+            sort: column,
+            direction:
+                column === 'name' || column === 'status' ? 'asc' : 'desc',
+        });
     }
 }
 
@@ -148,24 +200,11 @@ const statusOptions: { value: LibraryStatus | null; label: string }[] = [
     <Head title="Library" />
 
     <div class="flex flex-col gap-6">
-        <div
-            class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2"
-        >
+        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h1 class="font-display text-title font-bold text-text">Library</h1>
-            <p
-                v-if="hasEntries"
-                class="flex items-center gap-4 text-text-muted"
-            >
-                <span>
-                    <span class="font-mono tabular-nums">{{ total }}</span>
-                    {{ gamesLabel }}
-                </span>
-                <ImportButton
-                    v-if="!importing && importInfo.status === 'done'"
-                    variant="ghost"
-                >
-                    Refresh library
-                </ImportButton>
+            <p v-if="hasEntries" class="text-text-muted">
+                <span class="font-mono tabular-nums">{{ total }}</span>
+                {{ gamesLabel }}
             </p>
         </div>
 
@@ -219,53 +258,99 @@ const statusOptions: { value: LibraryStatus | null; label: string }[] = [
         </section>
 
         <template v-if="hasEntries">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="w-full sm:w-72">
-                    <label for="library-search" class="sr-only">
-                        Search your library
-                    </label>
-                    <input
-                        id="library-search"
-                        v-model="search"
-                        type="search"
-                        placeholder="Search your library"
-                        autocomplete="off"
-                        maxlength="100"
-                        class="h-9 w-full rounded-[2px] border border-border-strong bg-bg px-3 text-sm text-text placeholder:text-text-muted"
-                        :class="focusRing"
-                    />
+            <div class="flex flex-col gap-2">
+                <div
+                    class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
+                >
+                    <div class="relative w-full sm:w-72">
+                        <label for="library-search" class="sr-only">
+                            Search your library
+                        </label>
+                        <input
+                            id="library-search"
+                            ref="searchInput"
+                            v-model="search"
+                            type="search"
+                            placeholder="Search your library"
+                            autocomplete="off"
+                            maxlength="100"
+                            aria-keyshortcuts="/"
+                            class="h-9 w-full rounded-[2px] border border-border-strong bg-bg pr-9 pl-3 text-sm text-text placeholder:text-text-muted [&::-webkit-search-cancel-button]:appearance-none"
+                            :class="focusRing"
+                        />
+                        <button
+                            v-if="search !== ''"
+                            type="button"
+                            aria-label="Clear search"
+                            class="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-[2px] text-text-muted hover:text-text"
+                            :class="focusRing"
+                            @click="clearSearchAndFocus"
+                        >
+                            <X class="size-4" aria-hidden="true" />
+                        </button>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                        <div
+                            role="group"
+                            aria-label="Filter by status"
+                            class="flex flex-wrap gap-1"
+                        >
+                            <button
+                                v-for="option in statusOptions"
+                                :key="option.label"
+                                type="button"
+                                :aria-pressed="filters.status === option.value"
+                                :aria-label="`${option.label}, ${countLabel(status_counts[option.value ?? 'all'])}`"
+                                class="flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors duration-150"
+                                :class="[
+                                    focusRing,
+                                    filters.status === option.value
+                                        ? 'border-border-strong bg-surface-2 text-text'
+                                        : 'border-transparent text-text-muted hover:text-text',
+                                ]"
+                                @click="setStatus(option.value)"
+                            >
+                                {{ option.label }}
+                                <span
+                                    class="font-mono text-text-muted tabular-nums"
+                                    aria-hidden="true"
+                                >
+                                    {{ status_counts[option.value ?? 'all'] }}
+                                </span>
+                            </button>
+                        </div>
+
+                        <div
+                            v-if="!importing && importInfo.status === 'done'"
+                            class="flex items-center gap-3"
+                        >
+                            <ImportButton variant="ghost">
+                                Refresh library
+                            </ImportButton>
+                            <p
+                                v-if="importedAt"
+                                class="text-sm text-text-muted"
+                            >
+                                Updated
+                                <time
+                                    :datetime="importedAt"
+                                    :title="formatDate(importedAt)"
+                                    >{{ formatRelative(importedAt) }}</time
+                                >
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div
-                    role="group"
-                    aria-label="Filter by status"
-                    class="flex gap-1"
-                >
-                    <button
-                        v-for="option in statusOptions"
-                        :key="option.label"
-                        type="button"
-                        :aria-pressed="filters.status === option.value"
-                        class="h-9 rounded-md border px-3 text-sm transition-colors duration-150"
-                        :class="[
-                            focusRing,
-                            filters.status === option.value
-                                ? 'border-border-strong bg-surface-2 text-text'
-                                : 'border-transparent text-text-muted hover:text-text',
-                        ]"
-                        @click="setStatus(option.value)"
-                    >
-                        {{ option.label }}
-                    </button>
-                </div>
+                <p class="text-sm text-text-muted">
+                    Recent means played in the last two weeks.
+                </p>
             </div>
 
-            <!-- Announces the result of a search, sort or filter to screen readers. -->
+            <!-- Announces the result of a search, sort, filter or page change to screen readers. -->
             <p class="sr-only" role="status" aria-live="polite">
-                {{ entries.total }}
-                {{ entries.total === 1 ? 'game' : 'games' }} shown, sorted by
-                {{ filters.sort.replace('_', ' ') }},
-                {{ filters.direction === 'asc' ? 'ascending' : 'descending' }}.
+                {{ announcement }}
             </p>
 
             <template v-if="entries.data.length > 0">
@@ -284,6 +369,7 @@ const statusOptions: { value: LibraryStatus | null; label: string }[] = [
                         v-if="entries.prev_page_url"
                         :href="entries.prev_page_url"
                         rel="prev"
+                        @success="announce"
                         :class="[pageLink, focusRing]"
                     >
                         Previous
@@ -305,6 +391,7 @@ const statusOptions: { value: LibraryStatus | null; label: string }[] = [
                         v-if="entries.next_page_url"
                         :href="entries.next_page_url"
                         rel="next"
+                        @success="announce"
                         :class="[pageLink, focusRing]"
                     >
                         Next
