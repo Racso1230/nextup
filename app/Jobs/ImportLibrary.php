@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Actions\RecordPlaytimeSnapshots;
 use App\Enums\ImportStatus;
 use App\Enums\LibraryVisibility;
+use App\Igdb\IgdbStatus;
 use App\Models\Game;
 use App\Models\LibraryEntry;
 use App\Models\User;
@@ -60,7 +61,7 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return [new RateLimited('steam')];
     }
 
-    public function handle(SteamClient $steam, RecordPlaytimeSnapshots $snapshots): void
+    public function handle(SteamClient $steam, RecordPlaytimeSnapshots $snapshots, IgdbStatus $igdb): void
     {
         $user = $this->user;
         $user->update(['import_status' => ImportStatus::Running]);
@@ -105,6 +106,11 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 'import_status' => ImportStatus::Done,
             ])->save();
         });
+
+        // New games need IGDB ids. The job is globally unique, so simultaneous imports share one run.
+        if ($igdb->configured()) {
+            MatchGames::dispatch();
+        }
     }
 
     public function failed(Throwable $e): void

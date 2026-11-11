@@ -23,7 +23,7 @@ final class IgdbClient
     /** Safety cap on pages per chunk, so a misbehaving API cannot make us loop forever. */
     private const MAX_PAGES = 20;
 
-    /** `external_game_sources` id for Steam. */
+    /** `external_game_sources` id for Steam. Confirmed against live IGDB on 2026-11-09 (Portal 2: 620 to 72). */
     private const STEAM_SOURCE_ID = 1;
 
     private const GAME_FIELDS = 'name,slug,first_release_date,cover.image_id,similar_games,'

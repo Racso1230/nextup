@@ -15,11 +15,10 @@ test('steam_appid is unique', function () {
         ->toThrow(UniqueConstraintViolationException::class);
 });
 
-test('igdb_id is unique', function () {
-    Game::factory()->create(['igdb_id' => 1942]);
+test('igdb_id is indexed, not unique', function () {
+    Game::factory()->count(2)->create(['igdb_id' => 1942]);
 
-    expect(fn () => Game::factory()->create(['igdb_id' => 1942]))
-        ->toThrow(UniqueConstraintViolationException::class);
+    expect(Game::where('igdb_id', 1942)->count())->toBe(2);
 });
 
 test('match_status defaults to pending', function () {
