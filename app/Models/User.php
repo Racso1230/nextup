@@ -65,4 +65,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(LibraryEntry::class);
     }
+
+    /**
+     * @return HasMany<RecommendationRun, $this>
+     */
+    public function recommendationRuns(): HasMany
+    {
+        return $this->hasMany(RecommendationRun::class);
+    }
 }

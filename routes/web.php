@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\SteamLoginController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\LibraryImportController;
+use App\Http\Controllers\PlayNextController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -23,7 +24,8 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::redirect('dashboard', '/library')->name('dashboard');
+    Route::redirect('dashboard', '/play-next')->name('dashboard');
+    Route::get('play-next', [PlayNextController::class, 'index'])->name('play-next');
     Route::get('library', [LibraryController::class, 'index'])->name('library');
     Route::post('library/import', [LibraryImportController::class, 'store'])
         ->middleware('throttle:3,1')

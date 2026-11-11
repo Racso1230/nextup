@@ -135,3 +135,18 @@ Unique `(library_entry_id, captured_on)`, so re-running an import on the same da
 adding one. A row is written only on the first import of an entry and when `minutes_total` differs from the
 entry's latest snapshot. A missing day means "unchanged". The total as of any date is the latest row on or
 before it.
+
+### recommendation_runs and recommendation_picks (Phase 3)
+
+Every ranking is stored so a pick can be audited later ("why did it say that?") and so Phase 5 can compare runs.
+
+**recommendation_runs**: `id`, `user_id` (FK users, cascade on delete), `weights` (json: the weights used),
+`candidate_count` (integer), `created_at`.
+
+**recommendation_picks**: `id`, `recommendation_run_id` (FK, cascade on delete), `library_entry_id` (FK
+library_entries, cascade on delete), `rank` (integer, 1 = top pick), `score` (double), `contributions` (json:
+per signal `{value, weight, weighted}`), `explanation` (text), with unique `(recommendation_run_id, rank)`.
+
+Only the top 20 picks of a run are stored. A run is reused while it is newer than the user's last import and
+less than 6 hours old; otherwise viewing the page computes a fresh one. Ranking reads only the database (no
+Steam or IGDB calls) and takes milliseconds, so it runs inside the request.
