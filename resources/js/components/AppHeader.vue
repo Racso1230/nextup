@@ -11,16 +11,15 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInitials } from '@/composables/useInitials';
-import { library } from '@/routes';
+import { library, playNext } from '@/routes';
 
 type NavLink = {
     title: string;
-    /** Absent while the page does not exist yet. */
-    href?: string;
+    href: string;
 };
 
 const navItems: NavLink[] = [
-    { title: 'Play next (soon)' },
+    { title: 'Play next', href: playNext().url },
     { title: 'Library', href: library().url },
 ];
 
@@ -39,7 +38,7 @@ const focusRing =
             class="flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-6 px-4 md:px-8"
         >
             <Link
-                :href="library()"
+                :href="playNext()"
                 class="rounded-md py-3 font-display text-2xl leading-none font-bold text-text"
                 :class="focusRing"
             >
@@ -53,7 +52,6 @@ const focusRing =
             >
                 <template v-for="item in navItems" :key="item.title">
                     <Link
-                        v-if="item.href"
                         :href="item.href"
                         :aria-current="
                             isCurrentOrParentUrl(item.href) ? 'page' : undefined
@@ -68,13 +66,6 @@ const focusRing =
                             aria-hidden="true"
                         />
                     </Link>
-                    <span
-                        v-else
-                        aria-disabled="true"
-                        class="flex h-10 items-center text-text-muted sm:h-14"
-                    >
-                        {{ item.title }}
-                    </span>
                 </template>
             </nav>
 

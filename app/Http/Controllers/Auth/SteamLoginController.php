@@ -66,7 +66,7 @@ class SteamLoginController extends Controller
             $queueImport($user);
         }
 
-        return redirect()->route('library');
+        return redirect()->route('play-next');
     }
 
     private function failed(string $reason): RedirectResponse
