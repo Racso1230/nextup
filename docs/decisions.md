@@ -2,6 +2,28 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-11: Recommender v1 works around what Steam can't tell us
+
+**What:** four approved choices in `docs/recommender.md`:
+
+- **Likely-finished games are hidden.** A game is hidden when playtime is at least the IGDB time to beat and it
+  hasn't been played for 30 days. It still feeds taste.
+- **Freshness uses only known facts.** Never played scores 1.0, tried once and abandoned scores 0.5, and
+  everything else 0.
+- **Keywords count at quarter weight** in the taste vector.
+- **"Fits tonight" means finishability** until Phase 4 adds the "how long have you got?" input.
+
+**Why:** Steam exposes no completion flag, no purchase date and no sessions. Each rule uses the closest honest
+proxy and degrades to neutral when data is missing (an unknown time to beat is 0.5, never 0, and is never used
+to hide a game). On the real library, 21 of 130 games are past their time to beat, so without the finished rule
+completed story games would top the list on taste alone.
+
+**Rejected:**
+
+- Hiding anything past its time to beat regardless of recency (it would hide a game being replayed).
+- Using nextup's first-seen date as an ownership date (every game is "seen" on the same day at signup).
+- Equal-weight or zero-weight keywords. Both stay open to change in Phase 5 if the evaluation says so.
+
 ## 2026-11-09: `games.igdb_id` is indexed, not unique
 
 **What:** the Phase 2 design made `igdb_id` unique. A follow-up migration replaces the unique key with a plain
