@@ -21,13 +21,23 @@ final class FitSignal implements Signal
 
     public function score(GameFacts $candidate, Profile $profile): float
     {
+        // Unknown time to beat is neutral, never zero.
         if ($candidate->ttbNormallySeconds === null) {
-            // Unknown is neutral, never zero.
             return Params::FIT_UNKNOWN;
         }
 
-        $remainingHours = max(0.0, $candidate->ttbNormallySeconds / 3600 - $candidate->playtimeHours());
+        // Played to (or past) the time to beat: finishing is no longer the point, so neutral as well.
+        if (self::pastTimeToBeat($candidate)) {
+            return Params::FIT_UNKNOWN;
+        }
+
+        $remainingHours = $candidate->ttbNormallySeconds / 3600 - $candidate->playtimeHours();
 
         return 1 / (1 + $remainingHours / Params::FIT_HALF_HOURS);
+    }
+
+    public static function pastTimeToBeat(GameFacts $game): bool
+    {
+        return $game->ttbNormallySeconds !== null && $game->playtimeMinutes * 60 >= $game->ttbNormallySeconds;
     }
 }

@@ -78,9 +78,14 @@ Unplayed games have momentum 0.
 
 Phase 3 has no "how long have you got?" input yet (that is Phase 4), so v1 measures **how finishable** a game is:
 
-- Remaining time = `max(0, ttb_normally − playtime)`, in hours.
-- `fit = 1 / (1 + remaining_hours / 10)`: 0 hours left is 1.0, 10 hours left is 0.5, 40 hours left is 0.2.
+- Remaining time = `ttb_normally − playtime`, in hours.
+- `fit = 1 / (1 + remaining_hours / 10)`: 30 minutes left is about 0.95, 10 hours left is 0.5, 40 hours left
+  is 0.2.
 - Unknown time to beat is **0.5**, never 0.
+- **Played to or past the time to beat is also 0.5**, and the explanation never mentions finishing. Finishing
+  is no longer the point, and momentum already surfaces games still being played. (Approved 2026-11-11 after the
+  first real run ranked Rocket League, at 137 hours on a short time to beat, as "less than an hour from the
+  end".)
 
 Phase 4 replaces the 10-hour constant with the time the user says they have.
 
