@@ -134,6 +134,19 @@ explanation uses the **top two or three positive contributions**, in plain Engli
 Rules: no fragment for a null signal, numbers always come from real data, and nothing is invented (an unknown
 time to beat never produces a "hours left" claim).
 
+## Precise rules
+
+Settled while writing the tests first, so code, tests and this document agree:
+
+- **Vectors:** a game's tag vector uses the same weights as the taste vector (`type weight × idf`), so both
+  live in the same space.
+- **Leave-one-out:** removes the game's contribution _and_ lowers the played count by one. The only played
+  game therefore has no taste evidence left, and its taste is null. Tiny-library scaling uses that lowered count.
+- **Idle thresholds are inclusive and counted in whole days:** 30+ days for finished, 60+ for dropped, 180+ for
+  "tried once". A played game with no last-played date (Steam reports 0 for very old play) counts as idle.
+- **Order of steps:** candidates are collapsed by IGDB id first; the finished rule is applied to the entry kept.
+- **Mismatch:** a dropped game is compared with the _other_ dropped games. With none, mismatch is 0.
+
 ## Edge cases
 
 | Case                             | Behaviour                                                                     |
