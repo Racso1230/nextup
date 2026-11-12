@@ -12,7 +12,7 @@ import type {
     ImportInfo,
     LibraryFilters,
     LibraryPage,
-    LibraryStatus,
+    LibraryStatusFilter,
     PrivacyInfo,
     SortColumn,
     StatusCounts,
@@ -23,6 +23,7 @@ const props = defineProps<{
     filters: LibraryFilters;
     total: number;
     status_counts: StatusCounts;
+    hidden_count: number;
     import: ImportInfo;
     privacy: PrivacyInfo | null;
 }>();
@@ -170,7 +171,7 @@ function countLabel(count: number): string {
     return `${count} ${count === 1 ? 'game' : 'games'}`;
 }
 
-function setStatus(status: LibraryStatus | null): void {
+function setStatus(status: LibraryStatusFilter | null): void {
     visit({ status });
 }
 
@@ -188,12 +189,27 @@ function sortBy(column: SortColumn): void {
     }
 }
 
-const statusOptions: { value: LibraryStatus | null; label: string }[] = [
+const baseStatusOptions: {
+    value: LibraryStatusFilter | null;
+    label: string;
+}[] = [
     { value: null, label: 'All' },
     { value: 'unplayed', label: 'Unplayed' },
     { value: 'recent', label: 'Recent' },
     { value: 'played', label: 'Played' },
 ];
+// Hidden only appears once something is hidden. Stay visible while filtered to it, so it can be left.
+const statusOptions = computed(() =>
+    props.hidden_count > 0 || props.filters.status === 'hidden'
+        ? [...baseStatusOptions, { value: 'hidden' as const, label: 'Hidden' }]
+        : baseStatusOptions,
+);
+
+function countFor(value: LibraryStatusFilter | null): number {
+    return value === 'hidden'
+        ? props.hidden_count
+        : props.status_counts[value ?? 'all'];
+}
 </script>
 
 <template>
@@ -301,7 +317,7 @@ const statusOptions: { value: LibraryStatus | null; label: string }[] = [
                                 :key="option.label"
                                 type="button"
                                 :aria-pressed="filters.status === option.value"
-                                :aria-label="`${option.label}, ${countLabel(status_counts[option.value ?? 'all'])}`"
+                                :aria-label="`${option.label}, ${countLabel(countFor(option.value))}`"
                                 class="flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors duration-150"
                                 :class="[
                                     focusRing,
@@ -316,7 +332,7 @@ const statusOptions: { value: LibraryStatus | null; label: string }[] = [
                                     class="font-mono text-text-muted tabular-nums"
                                     aria-hidden="true"
                                 >
-                                    {{ status_counts[option.value ?? 'all'] }}
+                                    {{ countFor(option.value) }}
                                 </span>
                             </button>
                         </div>

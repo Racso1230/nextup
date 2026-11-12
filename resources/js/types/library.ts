@@ -1,4 +1,6 @@
 export type LibraryStatus = 'unplayed' | 'recent' | 'played';
+/** A status filter segment: a derived status, or the hidden (never suggest) games. */
+export type LibraryStatusFilter = LibraryStatus | 'hidden';
 export type SortColumn = 'name' | 'playtime' | 'last_played' | 'status';
 export type SortDirection = 'asc' | 'desc';
 
