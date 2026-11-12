@@ -38,18 +38,21 @@ class PlayNextRequest extends FormRequest
     /**
      * The current choices, as the page's controls show them.
      *
-     * @return array{hours: int, mood: ?string, with: ?string}
+     * @return array{hours: ?int, mood: ?string, with: ?string}
      */
     public function filters(): array
     {
+        $hours = $this->hours();
+
         return [
-            'hours' => (int) $this->hours(),
+            'hours' => $hours === null ? null : (int) $hours,
             'mood' => $this->mood()?->value,
             'with' => $this->company()?->value,
         ];
     }
 
-    private function hours(): float
+    /** Null means "any": no time chosen, so "fits tonight" doesn't count. */
+    private function hours(): ?float
     {
         $value = $this->rawString('hours');
 
@@ -59,7 +62,7 @@ class PlayNextRequest extends FormRequest
             }
         }
 
-        return SessionContext::DEFAULT_HOURS;
+        return null;
     }
 
     private function mood(): ?Mood

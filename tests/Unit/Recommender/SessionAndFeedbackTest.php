@@ -56,10 +56,11 @@ function mode(int $id): TagRef
 | Time available
 */
 
-it('keeps v1 fit with the default 2 hours and scales the half-point with the time available', function () {
+it('ignores fit until a time is chosen, then scales the half-point with the time available', function () {
     $game = Facts::game(1, ttbHours: 10); // 10 hours remaining
 
-    expect((new FitSignal)->score($game, sessionProfile()))->toEqualWithDelta(0.5, 1e-9) // half-point 10
+    expect((new FitSignal)->score($game, sessionProfile()))->toBeNull()
+        ->and((new FitSignal)->score($game, sessionProfile(new SessionContext(2.0))))->toEqualWithDelta(0.5, 1e-9) // half-point 10
         ->and((new FitSignal)->score($game, sessionProfile(new SessionContext(1.0))))->toEqualWithDelta(1 / 3, 1e-9) // half-point 5
         ->and((new FitSignal)->score($game, sessionProfile(new SessionContext(4.0))))->toEqualWithDelta(2 / 3, 1e-9); // half-point 20
 });

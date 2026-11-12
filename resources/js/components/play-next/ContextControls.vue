@@ -13,9 +13,10 @@ import type {
 const props = defineProps<{ filters: PlayNextFilters }>();
 
 const STORAGE_KEY = 'nextup.play-next.context';
-const DEFAULT_HOURS: PlayNextHours = 2;
 
-const hourOptions: { value: PlayNextHours; label: string }[] = [
+// "Any" (null) is the default: "fits tonight" only counts once a time is chosen.
+const hourOptions: { value: PlayNextHours | null; label: string }[] = [
+    { value: null, label: 'Any' },
     { value: 1, label: '1 hour' },
     { value: 2, label: '2 hours' },
     { value: 4, label: '4 hours' },
@@ -35,7 +36,7 @@ const companyOptions: { value: PlayNextCompany | null; label: string }[] = [
 function visit(next: PlayNextFilters): void {
     const query: Record<string, string | number> = {};
 
-    if (next.hours !== DEFAULT_HOURS) {
+    if (next.hours !== null) {
         query.hours = next.hours;
     }
 
@@ -82,7 +83,7 @@ function readStored(): PlayNextFilters | null {
         const company = companyOptions.find((o) => o.value === stored.with);
 
         return {
-            hours: hours?.value ?? DEFAULT_HOURS,
+            hours: hours?.value ?? null,
             mood: mood?.value ?? null,
             with: company?.value ?? null,
         };

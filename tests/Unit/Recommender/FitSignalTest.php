@@ -1,6 +1,8 @@
 <?php
 
 use App\Recommender\GameFacts;
+use App\Recommender\Profile;
+use App\Recommender\SessionContext;
 use App\Recommender\SignalName;
 use App\Recommender\Signals\FitSignal;
 use Tests\Unit\Recommender\Support\Facts;
@@ -9,11 +11,17 @@ use Tests\Unit\Recommender\Support\Facts;
 
 function fit(GameFacts $game): ?float
 {
-    return (new FitSignal)->score($game, Facts::profile());
+    // These tests are about the formula, so the user has said they have 2 hours (half-point 10).
+    return (new FitSignal)->score($game, new Profile([], [], [], [], [], 0, Facts::now(), new SessionContext(2.0)));
 }
 
 it('is the fit signal', function () {
     expect((new FitSignal)->name())->toBe(SignalName::Fit);
+});
+
+it('is null until the user says how long they have', function () {
+    // Leave-one-out evidence (docs/decisions.md 2026-11-12): an always-on fit buried long games people love.
+    expect((new FitSignal)->score(Facts::game(1, ttbHours: 10), Facts::profile()))->toBeNull();
 });
 
 it('is close to 1 with half an hour remaining', function () {

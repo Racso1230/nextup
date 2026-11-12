@@ -2,6 +2,44 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-12: "Fits tonight" only counts when the user picks a time (Phase 5 tuning)
+
+**What:** fit is null (no effect) unless the user chooses a time on the Play next page. The default is now "Any".
+When a time is chosen, fit applies at its full weight (0.15) as before. No other weight changed.
+
+**Evidence** (leave-one-out on the real 130-game library: 43 held-out games, each ranked against about 45
+never-played games; method in `docs/eval/method.md`):
+
+| Variant                       | HR@5      | HR@10     | NDCG@10   | MRR       | Mean rank |
+| ----------------------------- | --------- | --------- | --------- | --------- | --------- |
+| Before (fit always 0.15)      | 0.116     | 0.209     | 0.126     | 0.137     | 23.1      |
+| Fit 0.10                      | 0.279     | 0.442     | 0.223     | 0.179     | 18.7      |
+| Fit 0.05                      | 0.372     | 0.535     | 0.319     | 0.275     | 14.9      |
+| **After (no fit by default)** | **0.395** | **0.581** | **0.392** | **0.357** | **12.3**  |
+| Fit only, nothing else        | 0.023     | 0.023     | 0.015     | 0.046     | 33.8      |
+| Random baseline               | 0.116     | 0.163     | 0.067     | 0.070     | 26.1      |
+| Tag-overlap baseline          | 0.140     | 0.256     | 0.109     | 0.099     | 19.9      |
+
+Removing the mismatch penalty as well dropped HR@5 from 0.395 to 0.256, so mismatch stays.
+
+**Why:** finishability favours short games, and the games people go on to love are mostly long. On its own fit
+ranked _worse than random_. With it always on, the recommender lost to plain tag overlap. It was also why short
+bundled extras (Day of Defeat, Counter-Strike: Condition Zero Deleted Scenes, Half-Life: Blue Shift) crowded the
+top ten; without fit they leave the top eight, while taste picks (Dishonored: Death of the Outsider, BioShock, Prey)
+stay at the top.
+
+**Kept the control:** leave-one-out asks "which game would you come to love?", not "what fits one evening?", so
+it cannot evaluate an explicit "I have an hour". When the user picks a time they are asking for exactly that
+trade-off, so fit applies then.
+
+**Rejected:**
+
+- Fit at 0.05 always (close on the numbers, but it keeps nudging every view towards short games).
+- Removing the time control (it throws away a feature the evaluation can't judge).
+
+**Caveat:** 43 trials from one library. The gap here (5 vs 17 hits in the top five) is large enough to trust;
+small differences would not be. The time-split backtest (about 2027-02-07) is the next check.
+
 ## 2026-11-12: Session context and feedback (Phase 4)
 
 **What:** four approved choices, specified in `docs/recommender.md` under "Session context and feedback":
