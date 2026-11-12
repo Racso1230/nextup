@@ -169,3 +169,14 @@ test('it shows the nothing state when entries exist but none can be suggested', 
     $this->actingAs($user)->get(route('play-next'))
         ->assertInertia(fn (Assert $page) => $page->where('state', 'nothing')->where('picks', []));
 });
+
+test('it passes the session context to the page as filters', function () {
+    $user = User::factory()->create();
+    storedRun($user);
+
+    $this->actingAs($user)->get(route('play-next'))
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 2, 'mood' => null, 'with' => null]));
+
+    $this->actingAs($user)->get(route('play-next', ['hours' => 1, 'mood' => 'chill', 'with' => 'friends']))
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 1, 'mood' => 'chill', 'with' => 'friends']));
+});
