@@ -3,6 +3,7 @@
 use App\Demo\DemoLibrary;
 use App\Demo\DemoPersona;
 use App\Demo\HeroPick;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -81,4 +82,22 @@ it('caches the pick for an hour', function () {
 
     $this->travel(2)->minutes();
     expect(Cache::has('demo.hero-pick.v1'))->toBeFalse();
+});
+
+it('renders the landing page for signed-in users too, without leaking account details', function () {
+    $user = User::factory()->create(['steam_id' => '76561198000000001', 'persona_name' => 'RealPersona']);
+
+    $response = $this->actingAs($user)->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Welcome')->has('hero'));
+
+    expect(json_encode($response->viewData('page')['props']))
+        ->not->toContain('76561198000000001');
+});
+
+it('keeps the hero payload free of any real Steam ID or persona', function () {
+    $json = json_encode(app(HeroPick::class)());
+
+    expect($json)->not->toMatch('/7656119\d{10}/')
+        ->and($json)->not->toContain('persona');
 });
