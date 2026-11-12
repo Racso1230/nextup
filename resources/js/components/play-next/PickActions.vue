@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue';
 
-const props = defineProps<{
-    name: string;
-    busy: boolean;
-    /** "card" for the top pick, "row" for a compact ladder row. */
-    variant: 'card' | 'row';
-}>();
+// The top pick's own buttons. Ladder rows use NotThisOneMenu instead.
+defineProps<{ name: string; busy: boolean }>();
 
 const emit = defineEmits<{ notTonight: []; never: [] }>();
 
@@ -35,16 +31,10 @@ function confirm(): void {
     emit('never');
 }
 
-const textButton =
-    'rounded-[2px] text-sm text-text-muted underline underline-offset-4 hover:text-text disabled:opacity-50';
 const secondary =
-    props.variant === 'card'
-        ? 'h-10 rounded-md border border-border-strong bg-surface-2 px-4 font-medium text-text transition-colors duration-150 hover:bg-border disabled:opacity-50'
-        : textButton;
+    'h-10 rounded-md border border-border-strong bg-surface-2 px-4 font-medium text-text transition-colors duration-150 hover:bg-border disabled:opacity-50';
 const ghost =
-    props.variant === 'card'
-        ? 'h-10 rounded-md px-3 text-text-muted underline underline-offset-4 hover:text-text disabled:opacity-50'
-        : textButton;
+    'h-10 rounded-md px-3 text-text-muted underline underline-offset-4 hover:text-text disabled:opacity-50';
 </script>
 
 <template>
@@ -66,11 +56,11 @@ const ghost =
                 ref="neverButton"
                 type="button"
                 :disabled="busy"
-                :aria-label="`${variant === 'card' ? 'Never suggest' : 'Never'}: ${name}`"
+                :aria-label="`Never suggest: ${name}`"
                 :class="[ghost, focusRing]"
                 @click="ask"
             >
-                {{ variant === 'card' ? 'Never suggest' : 'Never' }}
+                Never suggest
             </button>
         </template>
         <div

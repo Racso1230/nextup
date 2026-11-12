@@ -163,3 +163,14 @@
         @apply bg-bg text-text;
     }
 }
+
+/*
+  Landing hero, no flash of the final state. The class is set by the inline script in app.blade.php only when
+  JavaScript runs and motion is allowed, and removed by useHeroAnimation.ts (or a 1.5s failsafe). Opacity only.
+*/
+.js-motion [data-hero-word],
+.js-motion [data-hero-card],
+.js-motion [data-hero-row],
+.js-motion [data-hero-glow] {
+    opacity: 0;
+}

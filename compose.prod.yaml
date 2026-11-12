@@ -1,0 +1,146 @@
+# Production services for nextup, ready to `include:` into the shared stack on
+# the VPS (see docs/deployment.md). Nothing here publishes a port: only the
+# shared Caddy container faces the internet, and it reaches `nextup` over the
+# default network.
+#
+# Networks:
+#   default           shared with Caddy; web, queue and scheduler also need it
+#                     to reach Steam and IGDB.
+#   nextup_internal   private (no internet): database, Redis and SSR live here.
+#
+# The env files sit next to this file on the server and are never committed:
+#   nextup.env      the Laravel settings (see docs/deployment.md)
+#   nextup-db.env   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
+
+x-app: &app
+    image: nextup:latest
+    build:
+        context: ${NEXTUP_SRC:-.}
+        target: runtime
+    env_file:
+        - nextup.env
+    restart: unless-stopped
+    networks:
+        - default
+        - nextup_internal
+
+services:
+    nextup:
+        <<: *app
+        # Rollback: `docker tag nextup:previous nextup:latest`, then `up -d`.
+        depends_on:
+            nextup-db:
+                condition: service_healthy
+            nextup-redis:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8080/up']
+            interval: 15s
+            timeout: 5s
+            retries: 5
+            start_period: 60s
+
+    nextup-ssr:
+        image: nextup-ssr:latest
+        build:
+            context: ${NEXTUP_SRC:-.}
+            target: ssr
+        restart: unless-stopped
+        networks:
+            - nextup_internal
+        healthcheck:
+            # TCP check only: the SSR server's HTTP API includes /shutdown.
+            test:
+                [
+                    'CMD',
+                    'node',
+                    '-e',
+                    "require('net').connect(13714, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))",
+                ]
+            interval: 15s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+    nextup-queue:
+        <<: *app
+        command:
+            [
+                'php',
+                'artisan',
+                'queue:work',
+                'redis',
+                '--tries=3',
+                '--max-time=3600',
+                '--sleep=3',
+            ]
+        environment:
+            RUN_MIGRATIONS: 'false'
+        stop_grace_period: 60s
+        depends_on:
+            nextup:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD-SHELL', "grep -qa 'queue[:]work' /proc/[0-9]*/cmdline"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+
+    nextup-scheduler:
+        <<: *app
+        command: ['php', 'artisan', 'schedule:work']
+        environment:
+            RUN_MIGRATIONS: 'false'
+        depends_on:
+            nextup:
+                condition: service_healthy
+        healthcheck:
+            test:
+                ['CMD-SHELL', "grep -qa 'schedule[:]work' /proc/[0-9]*/cmdline"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+
+    nextup-db:
+        image: postgres:17
+        env_file:
+            - nextup-db.env
+        restart: unless-stopped
+        networks:
+            - nextup_internal
+        volumes:
+            - nextup_pg:/var/lib/postgresql/data
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    nextup-redis:
+        image: redis:7
+        # appendonly keeps queued jobs across restarts.
+        command: ['redis-server', '--appendonly', 'yes']
+        restart: unless-stopped
+        networks:
+            - nextup_internal
+        volumes:
+            - nextup_redis:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+networks:
+    nextup_internal:
+        internal: true
+
+volumes:
+    nextup_pg:
+    nextup_redis:

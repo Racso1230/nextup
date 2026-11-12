@@ -116,6 +116,27 @@ test('a zero freshness bar is hidden, because it would read as a claim', functio
             ]));
 });
 
+test('a zero momentum bar is hidden, and shown once it is above zero', function () {
+    $user = User::factory()->create();
+    $run = storedRun($user, 1);
+    $pick = $run->picks()->firstOrFail();
+    $pick->update(['contributions' => array_merge($pick->contributions, [
+        'momentum' => ['value' => 0.0, 'weight' => 0.2, 'weighted' => 0.0],
+    ])]);
+
+    $keys = collect($this->actingAs($user)->get(route('play-next'))->inertiaProps('picks.0.signals'))->pluck('key');
+
+    expect($keys)->not->toContain('momentum');
+
+    $pick->update(['contributions' => array_merge($pick->contributions, [
+        'momentum' => ['value' => 0.4, 'weight' => 0.2, 'weighted' => 0.08],
+    ])]);
+
+    $this->actingAs($user)->get(route('play-next'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('picks.0.signals.1', ['key' => 'momentum', 'label' => 'Momentum', 'value' => 0.4]));
+});
+
 test('scores are whole numbers from 0 to 100', function () {
     $user = User::factory()->create();
     storedRun($user);

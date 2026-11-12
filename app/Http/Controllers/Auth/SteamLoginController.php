@@ -45,6 +45,11 @@ class SteamLoginController extends Controller
             $avatar = $raw['avatarfull'] ?? $steamUser->getAvatar();
             $profileUrl = $raw['profileurl'] ?? null;
 
+            // Demo accounts live in a reserved range no real SteamID64 can reach, but never sign one in anyway.
+            if (User::where('steam_id', $steamId)->where('is_demo', true)->exists()) {
+                return $this->failed('demo steam id');
+            }
+
             $user = User::updateOrCreate(
                 ['steam_id' => $steamId],
                 [

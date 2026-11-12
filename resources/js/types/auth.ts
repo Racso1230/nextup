@@ -4,6 +4,8 @@ export type User = {
     persona_name: string;
     avatar_url: string | null;
     profile_url: string | null;
+    /** A throwaway demo account: show the demo banner. */
+    is_demo: boolean;
     [key: string]: unknown;
 };
 

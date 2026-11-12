@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import TryDemoButton from '@/components/TryDemoButton.vue';
 import { steam } from '@/routes/auth';
 </script>
 
@@ -31,6 +32,12 @@ import { steam } from '@/routes/auth';
             >
                 Sign in with Steam
             </a>
+            <div class="flex w-full flex-col gap-2">
+                <TryDemoButton />
+                <p class="text-sm text-text-muted">
+                    The demo uses a sample library and needs no account.
+                </p>
+            </div>
         </div>
     </main>
 </template>

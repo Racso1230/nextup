@@ -3,13 +3,15 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\SteamLoginController;
+use App\Http\Controllers\DemoController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\LibraryImportController;
 use App\Http\Controllers\PickFeedbackController;
 use App\Http\Controllers\PlayNextController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 if (! app()->isProduction()) {
     Route::inertia('design/tokens', 'DesignTokens')->name('design.tokens');
@@ -17,6 +19,9 @@ if (! app()->isProduction()) {
 
 Route::middleware('guest')->group(function () {
     Route::inertia('login', 'auth/Login')->name('login');
+
+    // "Try the demo": a throwaway account with a sample library, so the rate limit is tight.
+    Route::post('demo', [DemoController::class, 'store'])->middleware('throttle:5,1')->name('demo.start');
 
     Route::middleware('throttle:10,1')->group(function () {
         Route::get('auth/steam', [SteamLoginController::class, 'redirect'])->name('auth.steam');

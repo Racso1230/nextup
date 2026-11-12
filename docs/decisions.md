@@ -2,6 +2,38 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-12: Demo mode is a private throwaway account per visitor
+
+**What:** "Try the demo" creates a demo user (`users.is_demo`) with a library built from
+`database/data/demo-catalogue.json`. That file holds 127 games of public catalogue metadata (names, IGDB tags,
+covers, time to beat) exported from the dev database. The library is shaped by `App\Demo\DemoPersona`:
+
+- the playtime is invented and deterministic, for a player who loves story RPGs and immersive sims and plays co-op
+  shooters with friends;
+- all dates are relative to "now", so the demo never goes stale.
+
+Demo users:
+
+- **Never call Steam or IGDB.** Import, the friends refresh, the nightly schedule and "refresh library" all skip
+  them, and each path is tested.
+- **Are deleted** after 24 hours (hourly `demo:prune`) or on logout.
+- **Have a fake steam_id** starting `76561190`, below the real SteamID64 range, so it can never collide with a
+  real account. Steam login refuses it.
+
+The landing page's sample pick (`App\Demo\HeroPick`) ranks the same persona in memory with no database, and a test
+proves it matches the seeded account's ranking.
+
+**Why:** a hiring manager can try every feature, including the feedback buttons, without a Steam account, and one
+visitor's clicks never affect another's.
+
+**Rejected:**
+
+- One shared demo account (visitors would see each other's "never suggest" clicks).
+- A read-only demo (the most interesting interaction couldn't be tried).
+
+**Privacy:** the fixture holds no user data. Which games are in it came from Oscar's catalogue, but the playtime is
+invented.
+
 ## 2026-11-12: "Fits tonight" only counts when the user picks a time (Phase 5 tuning)
 
 **What:** fit is null (no effect) unless the user chooses a time on the Play next page. The default is now "Any".

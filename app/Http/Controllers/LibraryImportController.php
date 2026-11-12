@@ -11,7 +11,18 @@ class LibraryImportController extends Controller
 {
     public function store(Request $request, QueueLibraryImport $queueImport): RedirectResponse
     {
-        $queueImport($request->user() ?? abort(401));
+        $user = $request->user() ?? abort(401);
+
+        if ($user->is_demo) {
+            Inertia::flash('toast', [
+                'type' => 'info',
+                'message' => "The demo library can't be refreshed from Steam.",
+            ]);
+
+            return back();
+        }
+
+        $queueImport($user);
 
         Inertia::flash('toast', [
             'type' => 'success',

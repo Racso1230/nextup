@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import GameCover from '@/components/library/GameCover.vue';
-import PickActions from '@/components/play-next/PickActions.vue';
+import NotThisOneMenu from '@/components/play-next/NotThisOneMenu.vue';
 import { usePickFeedback } from '@/lib/pickFeedback';
 import type { Pick } from '@/types/play-next';
 
@@ -9,6 +9,20 @@ const props = defineProps<{ pick: Pick }>();
 
 const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
 const { busy, send } = usePickFeedback(() => props.pick.entry_id);
+
+// On mobile the reason is clamped to 3 lines. The full text is always in the page; when the clamp actually
+// cuts something off, a "Show more" button reveals it. From sm up there is no clamp.
+const reason = ref<HTMLElement | null>(null);
+const expanded = ref(false);
+const truncated = ref(false);
+
+onMounted(() => {
+    const el = reason.value;
+
+    if (el && window.matchMedia('(max-width: 639px)').matches) {
+        truncated.value = el.scrollHeight > el.clientHeight + 1;
+    }
+});
 </script>
 
 <template>
@@ -24,33 +38,54 @@ const { busy, send } = usePickFeedback(() => props.pick.entry_id);
             size="md"
         />
         <div class="min-w-0 flex-1">
-            <h3 class="font-semibold break-words text-text">{{ pick.name }}</h3>
+            <div class="flex items-start justify-between gap-3">
+                <h3 class="font-semibold break-words text-text">
+                    {{ pick.name }}
+                </h3>
+                <p class="shrink-0 font-mono text-text tabular-nums">
+                    <span aria-hidden="true"
+                        >{{ pick.score
+                        }}<span class="text-xs text-text-muted"
+                            >/100</span
+                        ></span
+                    >
+                    <span class="sr-only"
+                        >score {{ pick.score }} out of 100</span
+                    >
+                </p>
+            </div>
             <p
-                class="mt-1 line-clamp-2 text-sm text-text-muted sm:line-clamp-none"
+                ref="reason"
+                class="mt-1 text-sm text-text-muted sm:line-clamp-none"
+                :class="expanded ? '' : 'line-clamp-3'"
             >
                 {{ pick.explanation }}
             </p>
-            <PickActions
-                class="mt-2"
-                :name="pick.name"
-                :busy="busy"
-                variant="row"
-                @not-tonight="send('not_tonight')"
-                @never="send('never')"
-            />
-        </div>
-        <div class="flex shrink-0 flex-col items-end gap-2">
-            <p class="font-mono text-text tabular-nums">
-                <span aria-hidden="true">{{ pick.score }}</span>
-                <span class="sr-only">score {{ pick.score }} out of 100</span>
-            </p>
-            <a
-                :href="steamUrl"
-                :aria-label="`Play ${pick.name} on Steam`"
-                @click="send('playing')"
-                class="rounded-[2px] text-sm text-text-muted underline underline-offset-4 hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >Play</a
+            <button
+                v-if="truncated"
+                type="button"
+                :aria-expanded="expanded"
+                class="mt-1 rounded-[2px] text-sm text-text-muted underline underline-offset-4 hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:hidden"
+                @click="expanded = !expanded"
             >
+                {{ expanded ? 'Show less' : 'Show more' }}
+            </button>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+                <!-- Records "playing" and lets the steam:// link open as usual. -->
+                <a
+                    :href="steamUrl"
+                    :aria-label="`Play ${pick.name} on Steam`"
+                    class="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-text transition-colors duration-150 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    @click="send('playing')"
+                    >Play</a
+                >
+                <NotThisOneMenu
+                    :name="pick.name"
+                    :busy="busy"
+                    @not-tonight="send('not_tonight')"
+                    @never="send('never')"
+                />
+            </div>
         </div>
     </li>
 </template>
