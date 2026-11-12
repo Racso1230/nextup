@@ -1,6 +1,12 @@
 import type { ImportInfo, PrivacyInfo } from '@/types/library';
 
-export type SignalKey = 'taste' | 'momentum' | 'fit' | 'mood' | 'freshness';
+export type SignalKey =
+    | 'taste'
+    | 'momentum'
+    | 'fit'
+    | 'mood'
+    | 'social'
+    | 'freshness';
 
 export type PickSignal = {
     key: SignalKey;

@@ -26,12 +26,14 @@ class PlayNextController extends Controller
         'fit' => 'Fits tonight',
         // Null (so left out) when no mood is chosen. The snooze penalty is never shown, like mismatch.
         'mood' => 'Mood match',
+        // Null (left out) when the friends list is private; hidden at 0 like freshness.
+        'social' => 'Friends',
         // Covers both "never started" (1.0) and "tried once, never went back" (0.5).
         'freshness' => 'Fresh start',
     ];
 
-    /** Freshness is a nudge, not a measurement: a 0 bar would read as a claim, so it is only shown when it applies. */
-    private const array HIDE_WHEN_ZERO = ['freshness'];
+    /** Freshness and friends are nudges: a 0 bar would read as a claim, so they are only shown when they apply. */
+    private const array HIDE_WHEN_ZERO = ['freshness', 'social'];
 
     public function index(PlayNextRequest $request, LatestRecommendations $latest): Response
     {
