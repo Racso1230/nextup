@@ -3,7 +3,14 @@ import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { start } from '@/routes/demo';
 
-withDefaults(defineProps<{ class?: string }>(), { class: '' });
+withDefaults(
+    defineProps<{
+        class?: string;
+        /** "primary" is the one accent button of a view; "secondary" is the neutral button. */
+        variant?: 'primary' | 'secondary';
+    }>(),
+    { class: '', variant: 'secondary' },
+);
 
 const busy = ref(false);
 
@@ -29,12 +36,16 @@ function submit() {
         <button
             type="submit"
             :disabled="busy"
+            :aria-busy="busy"
             :class="[
-                'inline-flex h-10 w-full items-center justify-center rounded-md border border-border-strong bg-surface-2 px-6 text-sm font-semibold text-text hover:bg-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60',
+                'inline-flex h-10 w-full items-center justify-center rounded-md px-6 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60',
+                variant === 'primary'
+                    ? 'bg-accent text-accent-ink hover:opacity-90'
+                    : 'border border-border-strong bg-surface-2 text-text hover:bg-border',
                 $props.class,
             ]"
         >
-            Try the demo
+            {{ busy ? 'Setting up your demo…' : 'Try the demo' }}
         </button>
     </form>
 </template>

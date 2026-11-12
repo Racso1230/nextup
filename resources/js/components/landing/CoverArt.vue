@@ -2,7 +2,15 @@
 import { ref } from 'vue';
 import { initialsOf } from '@/lib/format';
 
-defineProps<{ name: string; url: string | null }>();
+withDefaults(
+    defineProps<{
+        name: string;
+        url: string | null;
+        /** Hide the art from assistive tech when the game name is rendered right next to it. */
+        decorative?: boolean;
+    }>(),
+    { decorative: false },
+);
 
 const failed = ref(false);
 </script>
@@ -11,7 +19,8 @@ const failed = ref(false);
     <img
         v-if="url && !failed"
         :src="url"
-        :alt="name"
+        :alt="decorative ? '' : name"
+        :aria-hidden="decorative ? 'true' : undefined"
         width="264"
         height="352"
         class="aspect-[2/3] w-full rounded-md bg-surface-2 object-cover"
@@ -19,9 +28,10 @@ const failed = ref(false);
     />
     <div
         v-else
-        role="img"
-        :aria-label="name"
-        class="flex aspect-[2/3] w-full items-center justify-center rounded-md bg-surface-2 text-heading font-semibold text-text-muted"
+        :role="decorative ? undefined : 'img'"
+        :aria-label="decorative ? undefined : name"
+        :aria-hidden="decorative ? 'true' : undefined"
+        class="flex aspect-[2/3] w-full items-center justify-center rounded-md bg-surface-2 text-sm font-semibold text-text-muted"
     >
         {{ initialsOf(name) }}
     </div>

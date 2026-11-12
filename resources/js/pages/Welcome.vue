@@ -8,7 +8,7 @@ import { home, login, playNext } from '@/routes';
 import { steam } from '@/routes/auth';
 import type { HeroPick } from '@/types/hero';
 
-defineProps<{ hero: HeroPick }>();
+const props = defineProps<{ hero: HeroPick }>();
 
 const page = usePage();
 const signedIn = computed(() => Boolean(page.props.auth.user));
@@ -18,15 +18,13 @@ const headline = 'What should you play tonight?'.split(' ');
 const heroRoot = ref<HTMLElement | null>(null);
 useHeroAnimation(heroRoot);
 
-// Final resting places for the cover stack. The animation starts elsewhere and lands here.
-const nextStyle = (index: number) => ({
-    transform: `translate(${64 + index * 36}px, ${index % 2 === 0 ? 0 : 14}px) rotate(${(index + 1) * 4}deg)`,
-    zIndex: 4 - index,
-});
+// Ranks 2 to 4 under the card. The server sends four; three fit the column.
+const ladder = computed(() => props.hero.next.slice(0, 3));
 
+// The same names as the bars on Play next (PickSignals.php), so the page and the product speak one language.
 const ranking = [
     {
-        title: 'Taste',
+        title: 'Taste match',
         text: 'Games like the ones you put hours into rank higher. Hours say more about what you enjoy than a star rating does.',
     },
     {
@@ -35,17 +33,26 @@ const ranking = [
     },
     {
         title: 'Fits tonight',
-        text: 'Say whether you have an hour or an evening and the list favours games that fit.',
+        text: 'Only when you say how long you have. Then the list favours games that fit your evening.',
+    },
+    {
+        title: 'Mood match',
+        text: 'Only when you pick chill or intense. Games that suit the mood rank higher.',
     },
     {
         title: 'Friends',
         text: 'Games your friends are playing get a small nudge. They are counted, never named.',
+    },
+    {
+        title: 'Fresh start',
+        text: 'Games you own but never really started.',
     },
 ];
 
 const focusRing =
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 const link = `rounded-sm text-text underline underline-offset-4 hover:text-text-muted ${focusRing}`;
+const quietLink = `rounded-sm text-text-muted underline underline-offset-4 hover:text-text ${focusRing}`;
 
 const topBarLink = computed(() =>
     signedIn.value
@@ -89,7 +96,7 @@ const topBarLink = computed(() =>
         >
             <section
                 ref="heroRoot"
-                class="grid gap-12 py-12 md:py-20 lg:grid-cols-[1fr_28rem] lg:items-center lg:gap-16"
+                class="grid gap-12 py-12 md:py-20 lg:grid-cols-[1fr_28rem] lg:items-start lg:gap-16"
             >
                 <div class="flex flex-col items-start gap-6">
                     <h1
@@ -110,44 +117,45 @@ const topBarLink = computed(() =>
                         instead of an hour of scrolling.
                     </p>
                     <div
-                        class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
+                        class="flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:items-start"
                     >
+                        <div class="flex flex-col gap-2 sm:max-w-[16rem]">
+                            <TryDemoButton
+                                variant="primary"
+                                class="sm:w-auto"
+                            />
+                            <p class="text-text-muted">
+                                No account needed. It uses a sample library.
+                            </p>
+                        </div>
                         <!-- A plain link: this is a full-page redirect off-site, not an Inertia visit. -->
                         <a
                             :href="steam.url()"
-                            class="inline-flex h-10 items-center justify-center rounded-md bg-accent px-6 text-sm font-semibold text-accent-ink hover:opacity-90"
+                            class="inline-flex h-10 items-center justify-center rounded-md border border-border-strong bg-surface-2 px-6 text-sm font-semibold text-text hover:bg-border"
                             :class="focusRing"
                         >
                             Sign in with Steam
                         </a>
-                        <TryDemoButton class="sm:w-auto" />
                     </div>
-                    <p class="text-sm text-text-muted">
-                        The demo uses a sample library and needs no account.
+                    <p class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                        <a
+                            href="https://github.com/Racso1230/nextup"
+                            rel="noopener"
+                            :class="quietLink"
+                            >Source on GitHub</a
+                        >
+                        <a
+                            href="https://ojfdigital.co.uk"
+                            rel="noopener"
+                            :class="quietLink"
+                            >Built by Oscar at OJF Digital</a
+                        >
                     </p>
                 </div>
 
                 <div class="flex flex-col gap-6">
-                    <div class="relative h-72 sm:h-80">
-                        <div
-                            v-for="(next, i) in hero.next"
-                            :key="next.name"
-                            data-hero-next
-                            class="absolute top-6 left-0 w-28 sm:w-32"
-                            :style="nextStyle(i)"
-                        >
-                            <CoverArt :name="next.name" :url="next.cover_url" />
-                        </div>
-                        <div
-                            data-hero-top
-                            class="absolute top-0 left-0 z-10 w-36 sm:w-44"
-                        >
-                            <CoverArt :name="hero.name" :url="hero.cover_url" />
-                        </div>
-                    </div>
-
                     <div class="relative">
-                        <!-- The glow lives on its own layer so only opacity animates. -->
+                        <!-- The one glow lives on its own layer so only opacity animates. -->
                         <div
                             data-hero-glow
                             aria-hidden="true"
@@ -157,16 +165,26 @@ const topBarLink = computed(() =>
                             data-hero-card
                             class="relative flex flex-col gap-4 rounded-[10px] border border-accent bg-surface p-4 sm:p-6"
                         >
-                            <div class="flex items-end gap-4">
-                                <span
-                                    class="font-display text-rank-xl font-extrabold text-text"
-                                    ><span class="sr-only">Rank </span>1</span
-                                >
-                                <h2
-                                    class="min-w-0 pb-2 font-display text-title font-bold break-words text-text"
-                                >
-                                    {{ hero.name }}
-                                </h2>
+                            <div class="flex items-start gap-4">
+                                <div data-hero-cover class="w-[120px] shrink-0">
+                                    <CoverArt
+                                        :name="hero.name"
+                                        :url="hero.cover_url"
+                                        decorative
+                                    />
+                                </div>
+                                <div class="flex min-w-0 flex-col gap-1">
+                                    <span
+                                        class="font-display text-rank leading-none font-extrabold text-text"
+                                        ><span class="sr-only">Rank </span
+                                        >1</span
+                                    >
+                                    <h2
+                                        class="font-display text-title font-bold break-words text-text"
+                                    >
+                                        {{ hero.name }}
+                                    </h2>
+                                </div>
                             </div>
                             <p data-hero-explanation class="text-text">
                                 {{ hero.explanation }}
@@ -178,7 +196,7 @@ const topBarLink = computed(() =>
                                     class="flex items-center gap-3"
                                 >
                                     <span
-                                        class="w-28 shrink-0 text-sm text-text-muted"
+                                        class="w-24 shrink-0 text-sm text-text-muted"
                                         >{{ signal.label }}</span
                                     >
                                     <div
@@ -200,6 +218,31 @@ const topBarLink = computed(() =>
                             </ul>
                         </div>
                     </div>
+
+                    <ol class="flex list-none flex-col">
+                        <li
+                            v-for="(next, i) in ladder"
+                            :key="next.name"
+                            data-hero-row
+                            class="flex items-center gap-4 border-b border-border py-3 first:border-t"
+                        >
+                            <span
+                                class="w-10 shrink-0 text-right font-display text-heading font-bold text-text-muted"
+                                ><span class="sr-only">Rank </span
+                                >{{ i + 2 }}</span
+                            >
+                            <div data-hero-cover class="w-8 shrink-0">
+                                <CoverArt
+                                    :name="next.name"
+                                    :url="next.cover_url"
+                                    decorative
+                                />
+                            </div>
+                            <span class="min-w-0 break-words text-text-muted">{{
+                                next.name
+                            }}</span>
+                        </li>
+                    </ol>
                 </div>
             </section>
 
@@ -213,8 +256,12 @@ const topBarLink = computed(() =>
                 >
                     How nextup ranks your games
                 </h2>
-                <dl class="grid gap-8 sm:grid-cols-2">
-                    <div v-for="item in ranking" :key="item.title">
+                <dl class="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div
+                        v-for="item in ranking"
+                        :key="item.title"
+                        class="border-t border-border pt-4"
+                    >
                         <dt class="text-heading font-semibold">
                             {{ item.title }}
                         </dt>
@@ -245,7 +292,9 @@ const topBarLink = computed(() =>
                     see how the list changes. It needs no account and is deleted
                     after 24 hours.
                 </p>
-                <TryDemoButton class="sm:w-auto" />
+                <a href="#content" :class="link">
+                    Back to the top to try the demo
+                </a>
             </section>
 
             <section

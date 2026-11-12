@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { onMounted } from 'vue';
+import { ChevronDown } from '@lucide/vue';
+import { computed, onMounted, ref, useId } from 'vue';
 import SegmentedControl from '@/components/play-next/SegmentedControl.vue';
 import { playNext } from '@/routes';
 import type {
@@ -92,6 +93,32 @@ function readStored(): PlayNextFilters | null {
     }
 }
 
+// Below sm the three groups sit behind a disclosure that summarises the current choices.
+const open = ref(false);
+const panelId = useId();
+
+const summary = computed(() => {
+    const time =
+        props.filters.hours === null
+            ? 'any time'
+            : (hourOptions
+                  .find((o) => o.value === props.filters.hours)
+                  ?.label.toLowerCase() ?? 'any time');
+    const mood = props.filters.mood ?? 'any mood';
+    const company = moodOrNull(
+        companyOptions.find((o) => o.value === props.filters.with)?.label,
+    );
+    const parts = [time, mood, ...(company ? [company] : [])];
+    const text = parts.join(', ');
+
+    return `Tonight: ${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+});
+
+// "Either" is the default for company, so it adds nothing to the summary.
+function moodOrNull(label: string | undefined): string | null {
+    return !label || label === 'Either' ? null : label.toLowerCase();
+}
+
 // On a first visit with no choices in the URL, apply the remembered ones once.
 onMounted(() => {
     const params = new URLSearchParams(window.location.search);
@@ -114,24 +141,44 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="flex flex-wrap gap-x-8 gap-y-4">
-        <SegmentedControl
-            label="How long have you got?"
-            :options="hourOptions"
-            :model-value="filters.hours"
-            @select="(value) => change({ hours: value })"
-        />
-        <SegmentedControl
-            label="Mood"
-            :options="moodOptions"
-            :model-value="filters.mood"
-            @select="(value) => change({ mood: value })"
-        />
-        <SegmentedControl
-            label="Playing"
-            :options="companyOptions"
-            :model-value="filters.with"
-            @select="(value) => change({ with: value })"
-        />
+    <div class="flex flex-col gap-3">
+        <button
+            type="button"
+            :aria-expanded="open"
+            :aria-controls="panelId"
+            class="flex min-h-10 items-center justify-between gap-3 rounded-md border border-border-strong bg-surface-2 px-3 text-left text-sm text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:hidden"
+            @click="open = !open"
+        >
+            <span>{{ summary }}</span>
+            <ChevronDown
+                class="size-4 shrink-0 transition-transform duration-150"
+                :class="open ? 'rotate-180' : ''"
+                aria-hidden="true"
+            />
+        </button>
+        <div
+            :id="panelId"
+            class="flex-wrap gap-x-8 gap-y-4 sm:flex"
+            :class="open ? 'flex' : 'hidden'"
+        >
+            <SegmentedControl
+                label="How long have you got?"
+                :options="hourOptions"
+                :model-value="filters.hours"
+                @select="(value) => change({ hours: value })"
+            />
+            <SegmentedControl
+                label="Mood"
+                :options="moodOptions"
+                :model-value="filters.mood"
+                @select="(value) => change({ mood: value })"
+            />
+            <SegmentedControl
+                label="Playing with"
+                :options="companyOptions"
+                :model-value="filters.with"
+                @select="(value) => change({ with: value })"
+            />
+        </div>
     </div>
 </template>

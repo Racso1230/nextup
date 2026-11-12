@@ -25,9 +25,10 @@ const { busy, send } = usePickFeedback(() => props.pick.entry_id);
 
 <template>
     <li
-        class="flex flex-col gap-6 rounded-[10px] border border-accent bg-surface p-4 shadow-[0_0_32px_-8px_var(--color-accent)] sm:flex-row sm:p-6 md:gap-8"
+        class="grid grid-cols-[96px_1fr] gap-x-4 gap-y-4 rounded-[10px] border border-accent bg-surface p-4 shadow-[0_0_32px_-8px_var(--color-accent)] sm:grid-cols-[200px_1fr] sm:gap-x-6 sm:p-6 md:gap-x-8"
     >
-        <div class="w-full max-w-[320px] shrink-0 sm:w-[200px]">
+        <!-- Below sm the cover is small and sits beside the rank and name, so the reason and the Play button show without scrolling. -->
+        <div class="sm:row-span-2">
             <img
                 v-if="showCover"
                 :src="pick.cover_url ?? undefined"
@@ -48,18 +49,23 @@ const { busy, send } = usePickFeedback(() => props.pick.entry_id);
             </div>
         </div>
 
-        <div class="flex min-w-0 flex-1 flex-col gap-4">
-            <div class="flex items-end gap-4">
-                <span class="font-display text-rank-xl font-extrabold text-text"
-                    ><span class="sr-only">Rank </span>1</span
-                >
-                <h2
-                    class="min-w-0 pb-2 font-display text-title font-bold break-words text-text"
-                >
-                    {{ pick.name }}
-                </h2>
-            </div>
+        <div
+            class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:gap-4"
+        >
+            <span
+                class="font-display text-rank leading-none font-extrabold text-text sm:text-rank-xl sm:leading-[0.85]"
+                ><span class="sr-only">Rank </span>1</span
+            >
+            <h2
+                class="min-w-0 font-display text-title font-bold break-words text-text sm:pb-2"
+            >
+                {{ pick.name }}
+            </h2>
+        </div>
 
+        <div
+            class="col-span-2 flex min-w-0 flex-col gap-4 sm:col-span-1 sm:col-start-2"
+        >
             <p class="max-w-[65ch] text-text">{{ pick.explanation }}</p>
 
             <div
@@ -90,7 +96,6 @@ const { busy, send } = usePickFeedback(() => props.pick.entry_id);
             <PickActions
                 :name="pick.name"
                 :busy="busy"
-                variant="card"
                 @not-tonight="send('not_tonight')"
                 @never="send('never')"
             />
