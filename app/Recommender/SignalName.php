@@ -12,11 +12,13 @@ enum SignalName: string
     case Fit = 'fit';
     case Social = 'social';
     case Freshness = 'freshness';
+    case Mood = 'mood';
     case Mismatch = 'mismatch';
+    case Snooze = 'snooze';
 
-    /** Mismatch is subtracted; every other signal adds to the score. */
+    /** Mismatch and snooze are subtracted; every other signal adds to the score. */
     public function isPenalty(): bool
     {
-        return $this === self::Mismatch;
+        return $this === self::Mismatch || $this === self::Snooze;
     }
 }

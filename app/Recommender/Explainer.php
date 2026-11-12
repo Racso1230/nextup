@@ -2,6 +2,7 @@
 
 namespace App\Recommender;
 
+use App\Enums\FeedbackKind;
 use App\Recommender\Signals\FitSignal;
 use DateTimeImmutable;
 
@@ -68,11 +69,41 @@ final class Explainer
 
         return match ($signal) {
             SignalName::Taste => $this->taste($ranked),
-            SignalName::Momentum => $this->momentum($game, $now),
+            SignalName::Momentum => $this->momentum($ranked, $now),
             SignalName::Fit => $this->fit($game),
             SignalName::Freshness => $this->freshness($game),
-            SignalName::Social, SignalName::Mismatch => null,
+            SignalName::Social => $this->social($game),
+            SignalName::Mood => $this->mood($ranked),
+            SignalName::Mismatch, SignalName::Snooze => null,
         };
+    }
+
+    private function social(GameFacts $game): ?string
+    {
+        $friends = $game->friendsPlayedRecently;
+
+        if ($friends === null || $friends < 1) {
+            return null;
+        }
+
+        return ($friends === 1 ? 'a friend' : "{$friends} friends").' played it in the last two weeks';
+    }
+
+    private function mood(Ranked $ranked): ?string
+    {
+        // Only claim a mood fit when the game actually has the mood's tags (0.5 is the neutral "no data" value).
+        $value = $ranked->contribution(SignalName::Mood)?->value;
+
+        if ($value === null || $value <= Params::MOOD_UNKNOWN) {
+            return null;
+        }
+
+        $chill = $ranked->game->tags !== [] && array_filter(
+            Params::moodTags(Mood::Chill),
+            fn (TagRef $tag): bool => $ranked->game->hasTag($tag),
+        ) !== [];
+
+        return $chill ? 'it suits a chill evening' : 'it suits an intense session';
     }
 
     private function taste(Ranked $ranked): string
@@ -98,8 +129,15 @@ final class Explainer
         return $sentence;
     }
 
-    private function momentum(GameFacts $game, DateTimeImmutable $now): ?string
+    private function momentum(Ranked $ranked, DateTimeImmutable $now): ?string
     {
+        $game = $ranked->game;
+
+        if ($ranked->feedback?->kind === FeedbackKind::Playing
+            && $ranked->feedback->hoursAgo($now) < Params::PLAYING_MOMENTUM_DAYS * 24) {
+            return 'you said you\'re playing it';
+        }
+
         $recentMinutes = $game->recentMinutesFromSnapshots ?? $game->playtime2WeeksMinutes ?? 0;
 
         if ($recentMinutes >= 60) {

@@ -18,6 +18,8 @@ return [
         'fit' => 0.15,
         'social' => 0.10,
         'freshness' => 0.10,
+        'mood' => 0.15,
         'mismatch' => 0.10,
+        'snooze' => 0.20,
     ],
 ];

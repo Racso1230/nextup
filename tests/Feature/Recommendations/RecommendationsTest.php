@@ -71,13 +71,13 @@ describe('RunRecommendations', function () {
             ->and(RecommendationPick::count())->toBe(20);
     });
 
-    it('stores all six contributions and a non-empty explanation per pick', function () {
+    it('stores every signal contribution and a non-empty explanation per pick', function () {
         ['user' => $user] = seedLibrary();
 
         $run = app(RunRecommendations::class)($user);
 
         foreach ($run->picks as $pick) {
-            expect(array_keys($pick->contributions))->toBe(['taste', 'momentum', 'fit', 'social', 'freshness', 'mismatch'])
+            expect(array_keys($pick->contributions))->toBe(['taste', 'momentum', 'fit', 'social', 'freshness', 'mood', 'mismatch', 'snooze'])
                 ->and($pick->contributions['fit'])->toHaveKeys(['value', 'weight', 'weighted'])
                 ->and($pick->contributions['social']['value'])->toBeNull()
                 ->and($pick->explanation)->not->toBe('');

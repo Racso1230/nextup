@@ -2,6 +2,9 @@
 
 namespace App\Recommender;
 
+use App\Enums\FeedbackKind;
+use App\Enums\TagType;
+
 /**
  * Which games can be recommended: matched games only, one per IGDB game, minus the likely-finished ones.
  */
@@ -33,8 +36,51 @@ final class Candidates
 
         return array_values(array_filter(
             $byIgdb,
-            fn (GameFacts $game): bool => ! self::isLikelyFinished($game, $context),
+            fn (GameFacts $game): bool => ! self::isLikelyFinished($game, $context)
+                && ! self::isHiddenByFeedback($game, $context)
+                && self::suitsCompany($game, $context->session->company),
         ));
+    }
+
+    /**
+     * "Never suggest" hides a game until undone; "Not tonight" hides it for 24 hours (then SnoozeSignal fades it).
+     */
+    public static function isHiddenByFeedback(GameFacts $game, RecommendationContext $context): bool
+    {
+        $feedback = $context->feedback[$game->entryId] ?? null;
+
+        return match ($feedback?->kind) {
+            FeedbackKind::Never => true,
+            FeedbackKind::NotTonight => $feedback->hoursAgo($context->now) < Params::NOT_TONIGHT_HIDDEN_HOURS,
+            default => false,
+        };
+    }
+
+    /**
+     * The solo / with-friends filter on IGDB game modes. A game with no mode data is never hidden.
+     */
+    public static function suitsCompany(GameFacts $game, ?Company $company): bool
+    {
+        if ($company === null) {
+            return true;
+        }
+
+        $modes = [];
+
+        foreach ($game->tags as $tag) {
+            if ($tag->type === TagType::GameMode) {
+                $modes[] = $tag->id;
+            }
+        }
+
+        if ($modes === []) {
+            return true;
+        }
+
+        return match ($company) {
+            Company::Friends => array_intersect($modes, Params::MODES_WITH_FRIENDS) !== [],
+            Company::Solo => in_array(Params::MODE_SINGLE_PLAYER, $modes, true),
+        };
     }
 
     /**

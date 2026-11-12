@@ -11,7 +11,7 @@ use Tests\Unit\Recommender\Support\Facts;
  */
 function explainRanked(array $values, array $evidenceGames = [], array $evidenceTags = [], ...$facts): Ranked
 {
-    $weights = ['taste' => 0.35, 'momentum' => 0.2, 'fit' => 0.15, 'social' => 0.1, 'freshness' => 0.1, 'mismatch' => 0.1];
+    $weights = ['taste' => 0.35, 'momentum' => 0.2, 'fit' => 0.15, 'social' => 0.1, 'freshness' => 0.1, 'mood' => 0.15, 'mismatch' => 0.1, 'snooze' => 0.2];
     $contributions = [];
 
     foreach (SignalName::cases() as $signal) {

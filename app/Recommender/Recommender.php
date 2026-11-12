@@ -6,6 +6,8 @@ use App\Recommender\Signals\FitSignal;
 use App\Recommender\Signals\FreshnessSignal;
 use App\Recommender\Signals\MismatchSignal;
 use App\Recommender\Signals\MomentumSignal;
+use App\Recommender\Signals\MoodSignal;
+use App\Recommender\Signals\SnoozeSignal;
 use App\Recommender\Signals\SocialSignal;
 use App\Recommender\Signals\TasteSignal;
 
@@ -21,7 +23,7 @@ final class Recommender
     /** @var list<Signal> */
     private array $signals;
 
-    /** @param list<Signal>|null $signals defaults to every v1 signal */
+    /** @param list<Signal>|null $signals defaults to every signal */
     public function __construct(?array $signals = null)
     {
         $this->signals = $signals ?? [
@@ -30,7 +32,9 @@ final class Recommender
             new FitSignal,
             new SocialSignal,
             new FreshnessSignal,
+            new MoodSignal,
             new MismatchSignal,
+            new SnoozeSignal,
         ];
     }
 
@@ -62,7 +66,7 @@ final class Recommender
 
             [$games, $tags] = $this->evidence($candidate, $profile, $byEntry);
 
-            $ranked[] = new Ranked($candidate, $score, $contributions, $games, $tags);
+            $ranked[] = new Ranked($candidate, $score, $contributions, $games, $tags, $profile->feedbackFor($candidate->entryId));
         }
 
         // Best first; ties broken by name, then entry id, so the order never depends on input order.

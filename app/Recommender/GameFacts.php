@@ -18,6 +18,8 @@ final readonly class GameFacts
      *                                            when the snapshots don't cover that whole window yet
      * @param  ?int  $ttbNormallySeconds  IGDB time to beat; null means unknown, never zero
      * @param  list<TagRef>  $tags
+     * @param  ?int  $friendsPlayedRecently  friends who played it in the last two weeks; null when the friends list
+     *                                       is private or hasn't been fetched (Phase 4)
      */
     public function __construct(
         public int $entryId,
@@ -29,7 +31,19 @@ final readonly class GameFacts
         public ?DateTimeImmutable $lastPlayedAt,
         public ?int $ttbNormallySeconds,
         public array $tags,
+        public ?int $friendsPlayedRecently = null,
     ) {}
+
+    public function hasTag(TagRef $tag): bool
+    {
+        foreach ($this->tags as $own) {
+            if ($own->key() === $tag->key()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function isPlayed(): bool
     {
