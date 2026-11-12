@@ -1,5 +1,7 @@
 <?php
 
+use App\Logging\RedactSecretsTap;
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -59,6 +61,7 @@ return [
         ],
 
         'single' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
@@ -66,6 +69,7 @@ return [
         ],
 
         'daily' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
@@ -74,6 +78,7 @@ return [
         ],
 
         'monthly' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'monthly',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
@@ -82,6 +87,7 @@ return [
         ],
 
         'slack' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
             'username' => env('LOG_SLACK_USERNAME', env('APP_NAME', 'Laravel')),
@@ -91,6 +97,7 @@ return [
         ],
 
         'papertrail' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
             'handler' => env('LOG_PAPERTRAIL_HANDLER', SyslogUdpHandler::class),
@@ -102,7 +109,27 @@ return [
             'processors' => [PsrLogMessageProcessor::class],
         ],
 
+        // Structured logs for production: one JSON object per line. LOG_JSON_TARGET picks the
+        // destination, "daily" (storage/logs/laravel-json-DATE.log) or "stderr" (container logs).
+        'json' => [
+            'driver' => 'monolog',
+            'tap' => [RedactSecretsTap::class],
+            'level' => env('LOG_LEVEL', 'debug'),
+            'handler' => StreamHandler::class,
+            'handler_with' => [
+                'stream' => env('LOG_JSON_TARGET', 'daily') === 'stderr'
+                    ? 'php://stderr'
+                    : storage_path('logs/laravel-json-'.date('Y-m-d').'.log'),
+            ],
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'appendNewline' => true,
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
+        ],
+
         'stderr' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
             'handler' => StreamHandler::class,
@@ -114,6 +141,7 @@ return [
         ],
 
         'syslog' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'syslog',
             'level' => env('LOG_LEVEL', 'debug'),
             'facility' => env('LOG_SYSLOG_FACILITY', LOG_USER),
@@ -121,6 +149,7 @@ return [
         ],
 
         'errorlog' => [
+            'tap' => [RedactSecretsTap::class],
             'driver' => 'errorlog',
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
