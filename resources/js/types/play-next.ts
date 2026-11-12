@@ -44,7 +44,7 @@ export type PlayNextCompany = 'solo' | 'friends';
 
 /** The session controls as the server read them from the query string. */
 export type PlayNextFilters = {
-    hours: PlayNextHours;
+    hours: PlayNextHours | null;
     mood: PlayNextMood | null;
     with: PlayNextCompany | null;
 };

@@ -60,15 +60,15 @@ describe('session context from the query string', function () {
             ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 4, 'mood' => 'intense', 'with' => 'friends']));
     });
 
-    it('defaults to 2 hours, no mood and no company', function () {
+    it('defaults to any time, no mood and no company', function () {
         $this->actingAs(contextUser())->get(route('play-next'))
-            ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 2, 'mood' => null, 'with' => null]));
+            ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => null, 'mood' => null, 'with' => null]));
     });
 
     it('falls back to the defaults for invalid values instead of erroring', function (array $params) {
         $this->actingAs(contextUser())->get(route('play-next', $params))
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 2, 'mood' => null, 'with' => null]));
+            ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => null, 'mood' => null, 'with' => null]));
     })->with([
         'unknown hours' => [['hours' => 3, 'mood' => 'sleepy', 'with' => 'dog']],
         'non numeric hours' => [['hours' => 'lots']],
@@ -89,12 +89,12 @@ describe('session context from the query string', function () {
         expect(RecommendationRun::firstOrFail()->context)->toEqual(['hours' => 6.0, 'mood' => 'chill', 'company' => 'solo']);
     });
 
-    it('stores the default context as 2 hours with no mood or company', function () {
+    it('stores the default context as any time with no mood or company', function () {
         $user = contextUser();
 
         $this->actingAs($user)->get(route('play-next'))->assertOk();
 
-        expect(RecommendationRun::firstOrFail()->context)->toEqual(['hours' => 2.0, 'mood' => null, 'company' => null]);
+        expect(RecommendationRun::firstOrFail()->context)->toEqual(['hours' => null, 'mood' => null, 'company' => null]);
     });
 });
 
@@ -148,7 +148,7 @@ describe('caching by context', function () {
         $run = app(LatestRecommendations::class)($user, new SessionContext);
 
         expect(RecommendationRun::count())->toBe(2)
-            ->and($run?->context)->toEqual(['hours' => 2.0, 'mood' => null, 'company' => null]);
+            ->and($run?->context)->toEqual(['hours' => null, 'mood' => null, 'company' => null]);
     });
 
     it('ranks afresh when feedback changed after the run', function () {

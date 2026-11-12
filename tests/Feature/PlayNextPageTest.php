@@ -196,7 +196,7 @@ test('it passes the session context to the page as filters', function () {
     storedRun($user);
 
     $this->actingAs($user)->get(route('play-next'))
-        ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 2, 'mood' => null, 'with' => null]));
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => null, 'mood' => null, 'with' => null]));
 
     $this->actingAs($user)->get(route('play-next', ['hours' => 1, 'mood' => 'chill', 'with' => 'friends']))
         ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 1, 'mood' => 'chill', 'with' => 'friends']));

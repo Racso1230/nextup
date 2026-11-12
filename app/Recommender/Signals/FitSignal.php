@@ -19,8 +19,16 @@ final class FitSignal implements Signal
         return SignalName::Fit;
     }
 
-    public function score(GameFacts $candidate, Profile $profile): float
+    public function score(GameFacts $candidate, Profile $profile): ?float
     {
+        // Only when the user says how long they have. Leave-one-out showed that an always-on fit favours short
+        // games and buried the long ones people love (HR@5 0.116 with it, 0.395 without; docs/decisions.md).
+        $hours = $profile->session->hours;
+
+        if ($hours === null) {
+            return null;
+        }
+
         // Unknown time to beat is neutral, never zero.
         if ($candidate->ttbNormallySeconds === null) {
             return Params::FIT_UNKNOWN;
@@ -34,7 +42,7 @@ final class FitSignal implements Signal
         $remainingHours = $candidate->ttbNormallySeconds / 3600 - $candidate->playtimeHours();
 
         // The half-point scales with the time the user has tonight: 2 hours gives v1's 10 hours.
-        $halfPoint = Params::FIT_HALF_HOURS_PER_AVAILABLE_HOUR * $profile->session->hours;
+        $halfPoint = Params::FIT_HALF_HOURS_PER_AVAILABLE_HOUR * $hours;
 
         return 1 / (1 + $remainingHours / $halfPoint);
     }
