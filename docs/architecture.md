@@ -162,6 +162,9 @@ from the library adds no row; it deletes that entry's feedback rows.
 (`{hours, mood, company}`). A cached run is reused only when its context matches the request and no feedback is
 newer than the run.
 
+**users.feedback_changed_at** (timestamp, nullable): set on every feedback change (store or undo); a cached run is reused only
+when it is newer. Undo deletes feedback rows, which "newer than the run" could not see, and runs are kept as the audit trail.
+
 **friend_activity**: `id`, `user_id` (FK users, cascade), `steam_appid` (integer), `friends_played` (integer: how
 many friends played it in the last two weeks), `captured_on` (date). Unique `(user_id, steam_appid)`, replaced on
 each refresh. Only counts are stored, never friends' Steam ids or names. A private friends list stores nothing

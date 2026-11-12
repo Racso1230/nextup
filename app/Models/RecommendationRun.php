@@ -18,11 +18,12 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property array<string, float> $weights Signal name to the weight used.
  * @property int $candidate_count
+ * @property array{hours: float, mood: string|null, company: string|null}|null $context The session context it was ranked with.
  * @property Carbon|null $created_at
  * @property-read User $user
  * @property-read Collection<int, RecommendationPick> $picks
  */
-#[Fillable(['user_id', 'weights', 'candidate_count'])]
+#[Fillable(['user_id', 'weights', 'candidate_count', 'context'])]
 class RecommendationRun extends Model
 {
     /** @use HasFactory<RecommendationRunFactory> */
@@ -39,6 +40,7 @@ class RecommendationRun extends Model
         return [
             'weights' => 'array',
             'candidate_count' => 'integer',
+            'context' => 'array',
         ];
     }
 

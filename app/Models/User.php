@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property LibraryVisibility $library_visibility
  * @property ImportStatus $import_status
  * @property Carbon|null $imported_at
+ * @property Carbon|null $feedback_changed_at
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -55,6 +56,7 @@ class User extends Authenticatable
             'library_visibility' => LibraryVisibility::class,
             'import_status' => ImportStatus::class,
             'imported_at' => 'datetime',
+            'feedback_changed_at' => 'datetime',
         ];
     }
 
@@ -72,5 +74,13 @@ class User extends Authenticatable
     public function recommendationRuns(): HasMany
     {
         return $this->hasMany(RecommendationRun::class);
+    }
+
+    /**
+     * @return HasMany<PickFeedback, $this>
+     */
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(PickFeedback::class);
     }
 }

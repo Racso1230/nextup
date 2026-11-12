@@ -1,10 +1,12 @@
 <?php
 
+use App\Enums\FeedbackKind;
 use App\Enums\ImportStatus;
 use App\Enums\LibraryVisibility;
 use App\Enums\MatchStatus;
 use App\Models\Game;
 use App\Models\LibraryEntry;
+use App\Models\PickFeedback;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +71,7 @@ test('it renders the library with its props', function () {
                 'playtime_minutes' => 600,
                 'last_played_at' => '2026-01-01T10:00:00+00:00',
                 'status' => 'recent',
+                'hidden' => false,
             ])
             ->where('entries.current_page', 1)
             ->where('entries.last_page', 1)
@@ -400,4 +403,61 @@ test('fifty rows with tags use a bounded number of queries', function () {
     DB::disableQueryLog();
 
     expect($count)->toBeLessThan(15);
+});
+
+describe('never-suggested games', function () {
+    function neverFor(User $user, LibraryEntry $entry, ?FeedbackKind $then = null): void
+    {
+        PickFeedback::factory()->ofKind(FeedbackKind::Never)->create([
+            'user_id' => $user->id, 'library_entry_id' => $entry->id, 'created_at' => now()->subDay(),
+        ]);
+
+        if ($then !== null) {
+            PickFeedback::factory()->ofKind($then)->create(['user_id' => $user->id, 'library_entry_id' => $entry->id]);
+        }
+    }
+
+    it('flags rows whose latest feedback is never', function () {
+        $user = User::factory()->create();
+        $never = addEntry($user, 'Never');
+        $undone = addEntry($user, 'Later changed its mind');
+        addEntry($user, 'Untouched');
+        neverFor($user, $never);
+        neverFor($user, $undone, FeedbackKind::Playing);
+
+        $rows = $this->actingAs($user)->get(route('library', ['sort' => 'name']))->inertiaProps('entries.data');
+
+        expect(array_column($rows, 'hidden', 'name'))->toBe(['Later changed its mind' => false, 'Never' => true, 'Untouched' => false]);
+    });
+
+    it('filters to never-suggested games with status=hidden', function () {
+        $user = User::factory()->create();
+        neverFor($user, addEntry($user, 'Hidden one'));
+        addEntry($user, 'Shown');
+        neverFor(User::factory()->create(), addEntry(User::factory()->create(), 'Someone else\'s'));
+
+        expect(libraryNames($user, ['status' => 'hidden']))->toBe(['Hidden one']);
+
+        $this->actingAs($user)->get(route('library', ['status' => 'hidden']))
+            ->assertInertia(fn (Assert $page) => $page->where('filters.status', 'hidden')->where('total', 2));
+    });
+
+    it('counts hidden games separately and leaves the status counts alone', function () {
+        $user = User::factory()->create();
+        neverFor($user, addEntry($user, 'Hidden played', ['playtime_minutes' => 60, 'playtime_2weeks_minutes' => null]));
+        addEntry($user, 'Plain played', ['playtime_minutes' => 60, 'playtime_2weeks_minutes' => null]);
+
+        $this->actingAs($user)->get(route('library'))->assertInertia(fn (Assert $page) => $page
+            ->where('hidden_count', 1)
+            ->where('status_counts', ['all' => 2, 'unplayed' => 0, 'recent' => 0, 'played' => 2]));
+        $this->actingAs($user)->get(route('library', ['q' => 'plain']))
+            ->assertInertia(fn (Assert $page) => $page->where('hidden_count', 0));
+    });
+
+    it('is zero for a user with no feedback', function () {
+        $user = User::factory()->create();
+        addEntry($user, 'Plain');
+
+        $this->actingAs($user)->get(route('library'))->assertInertia(fn (Assert $page) => $page->where('hidden_count', 0));
+    });
 });

@@ -4,8 +4,10 @@ namespace App\Recommendations;
 
 use App\Enums\MatchStatus;
 use App\Models\User;
+use App\Recommender\Feedback;
 use App\Recommender\GameFacts;
 use App\Recommender\RecommendationContext;
+use App\Recommender\SessionContext;
 use App\Recommender\TagRef;
 use App\Recommender\Weights;
 use Carbon\CarbonImmutable;
@@ -20,7 +22,7 @@ final class LibraryContextFactory
     /** The momentum window, matching the "last 14 days" in docs/recommender.md. */
     private const int WINDOW_DAYS = 14;
 
-    public function build(User $user, CarbonImmutable $now): RecommendationContext
+    public function build(User $user, CarbonImmutable $now, ?SessionContext $session = null): RecommendationContext
     {
         $entries = $user->libraryEntries()->with('game.tags')->get();
         $recent = $this->recentMinutes($user, $entries->isNotEmpty(), $now);
@@ -54,7 +56,29 @@ final class LibraryContextFactory
             library: $library,
             now: $now,
             weights: Weights::fromArray(config()->array('recommender.weights')),
+            session: $session ?? SessionContext::default(),
+            feedback: $this->latestFeedback($user),
         );
+    }
+
+    /**
+     * The user's latest feedback per entry, in one query.
+     *
+     * @return array<int, Feedback>
+     */
+    private function latestFeedback(User $user): array
+    {
+        $feedback = [];
+
+        // Ordered by id so that, should two rows tie on time, the later one wins.
+        foreach ($user->feedback()->latestPerEntry()->orderBy('id')->get() as $row) {
+            $feedback[$row->library_entry_id] = new Feedback(
+                $row->kind,
+                ($row->created_at ?? now())->toDateTimeImmutable(),
+            );
+        }
+
+        return $feedback;
     }
 
     /**

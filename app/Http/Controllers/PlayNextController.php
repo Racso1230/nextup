@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ImportStatus;
 use App\Enums\LibraryVisibility;
+use App\Http\Requests\PlayNextRequest;
 use App\Igdb\IgdbImages;
 use App\Models\LibraryEntry;
 use App\Models\RecommendationPick;
@@ -11,7 +12,6 @@ use App\Models\User;
 use App\Recommendations\LatestRecommendations;
 use App\Steam\SteamCdn;
 use App\Steam\SteamPrivacy;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,11 +19,13 @@ class PlayNextController extends Controller
 {
     private const int MAX_PICKS = 10;
 
-    /** The signals shown as bars on the top pick, in order, with their labels. The mismatch penalty is left out. */
+    /** The signals shown as bars on the top pick, in order, with their labels. The mismatch and snooze penalties are left out. */
     private const array SIGNAL_LABELS = [
         'taste' => 'Taste match',
         'momentum' => 'Momentum',
         'fit' => 'Fits tonight',
+        // Null (so left out) when no mood is chosen. The snooze penalty is never shown, like mismatch.
+        'mood' => 'Mood match',
         // Covers both "never started" (1.0) and "tried once, never went back" (0.5).
         'freshness' => 'Fresh start',
     ];
@@ -31,17 +33,18 @@ class PlayNextController extends Controller
     /** Freshness is a nudge, not a measurement: a 0 bar would read as a claim, so it is only shown when it applies. */
     private const array HIDE_WHEN_ZERO = ['freshness'];
 
-    public function index(Request $request, LatestRecommendations $latest): Response
+    public function index(PlayNextRequest $request, LatestRecommendations $latest): Response
     {
         $user = $request->user() ?? abort(401);
 
-        $run = $latest($user);
+        $run = $latest($user, $request->sessionContext());
         $picks = $run === null ? collect() : $run->picks->take(self::MAX_PICKS)->load('libraryEntry.game');
 
         $isPrivate = $user->library_visibility === LibraryVisibility::Private;
 
         return Inertia::render('PlayNext', [
             'picks' => $picks->map(fn (RecommendationPick $pick): array => $this->pick($pick))->values()->all(),
+            'filters' => $request->filters(),
             'ranked_at' => $run?->created_at?->toIso8601String(),
             'state' => $picks->isNotEmpty() ? 'ready' : $this->emptyState($user, $isPrivate),
             'privacy' => $isPrivate

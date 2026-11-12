@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FeedbackKind;
 use App\Enums\LibraryVisibility;
 use App\Enums\TagType;
 use App\Http\Requests\LibraryIndexRequest;
 use App\Igdb\IgdbImages;
 use App\Models\LibraryEntry;
+use App\Models\PickFeedback;
 use App\Models\Tag;
 use App\Steam\SteamCdn;
 use App\Steam\SteamPrivacy;
@@ -27,6 +29,7 @@ class LibraryController extends Controller
         $sort = $request->sortColumn();
         $direction = $request->sortDirection();
         $status = $request->statusFilter();
+        $hiddenOnly = $request->hiddenOnly();
         $search = $request->searchTerm();
 
         $query = LibraryEntry::query()
@@ -38,6 +41,10 @@ class LibraryController extends Controller
 
         if ($status !== null) {
             $query->withStatus($status);
+        }
+
+        if ($hiddenOnly) {
+            $query->neverSuggested();
         }
 
         if ($search !== null) {
@@ -56,8 +63,10 @@ class LibraryController extends Controller
         // Stable tiebreak so pages never shuffle between requests.
         $query->orderByRaw('lower(games.name) asc')->orderBy('library_entries.id');
 
-        $entries = $query->paginate(self::PER_PAGE)->withQueryString()->through(
-            fn (LibraryEntry $entry): array => $this->row($entry),
+        $page = $query->paginate(self::PER_PAGE)->withQueryString();
+        $hidden = $this->hiddenIds($user->id, $page->getCollection()->pluck('id')->values()->all());
+        $entries = $page->through(
+            fn (LibraryEntry $entry): array => $this->row($entry, in_array($entry->id, $hidden, true)),
         );
 
         $isPrivate = $user->library_visibility === LibraryVisibility::Private;
@@ -67,10 +76,11 @@ class LibraryController extends Controller
             'filters' => [
                 'sort' => $sort,
                 'direction' => $direction,
-                'status' => $status?->value,
+                'status' => $hiddenOnly ? LibraryIndexRequest::HIDDEN : $status?->value,
                 'q' => $search,
             ],
             'status_counts' => $this->statusCounts($user->id, $search),
+            'hidden_count' => $this->hiddenCount($user->id, $search),
             'total' => LibraryEntry::query()->where('user_id', $user->id)->count(),
             'import' => [
                 'status' => $user->import_status->value,
@@ -81,6 +91,44 @@ class LibraryController extends Controller
                 ? ['settings_url' => SteamPrivacy::SETTINGS_URL, 'steps' => SteamPrivacy::steps()]
                 : null,
         ]);
+    }
+
+    /**
+     * Which of these entries are never-suggested (their latest feedback is "never"): one query for the page.
+     *
+     * @param  array<int, mixed>  $entryIds
+     * @return array<int, int>
+     */
+    private function hiddenIds(int $userId, array $entryIds): array
+    {
+        if ($entryIds === []) {
+            return [];
+        }
+
+        return PickFeedback::query()
+            ->where('user_id', $userId)
+            ->whereIn('library_entry_id', $entryIds)
+            ->latestPerEntry()
+            ->where('kind', FeedbackKind::Never->value)
+            ->pluck('library_entry_id')
+            ->map(fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)
+            ->values()
+            ->all();
+    }
+
+    /** Never-suggested games for the current search, ignoring the status filter. */
+    private function hiddenCount(int $userId, ?string $search): int
+    {
+        $query = LibraryEntry::query()
+            ->join('games', 'games.id', '=', 'library_entries.game_id')
+            ->where('library_entries.user_id', $userId)
+            ->neverSuggested();
+
+        if ($search !== null) {
+            $this->whereNameContains($query, $search);
+        }
+
+        return $query->count();
     }
 
     /**
@@ -117,7 +165,7 @@ class LibraryController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function row(LibraryEntry $entry): array
+    private function row(LibraryEntry $entry, bool $hidden): array
     {
         $game = $entry->game;
 
@@ -143,6 +191,7 @@ class LibraryController extends Controller
             'playtime_minutes' => $entry->playtime_minutes,
             'last_played_at' => $entry->last_played_at?->toIso8601String(),
             'status' => $entry->status->value,
+            'hidden' => $hidden,
         ];
     }
 
