@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use SocialiteProviders\Manager\SocialiteWasCalled;
@@ -67,6 +68,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // Behind Caddy the app sees plain http; generated URLs (and the Steam OpenID return URL) must be https.
+        if ($this->app->isProduction()) {
+            URL::forceHttps();
+        }
 
         Event::listen(SocialiteWasCalled::class, ExtendSocialiteWithSteam::class);
 

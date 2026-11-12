@@ -70,3 +70,4 @@ npm run types:check    # vue-tsc
 - [PLAN.md](PLAN.md): build order, phase by phase
 - [docs/architecture.md](docs/architecture.md): overview and data flow
 - [docs/decisions.md](docs/decisions.md): trade-offs and why
+- [docs/deployment.md](docs/deployment.md): production Docker setup and VPS runbook

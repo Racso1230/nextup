@@ -38,5 +38,7 @@
         <env name="STEAM_API_KEY" value="" force="true"/>
         <env name="IGDB_CLIENT_ID" value="" force="true"/>
         <env name="IGDB_CLIENT_SECRET" value="" force="true"/>
+        <!-- A leftover local SSR build (bootstrap/ssr) would otherwise make tests call an SSR server that isn't running. -->
+        <env name="INERTIA_SSR_ENABLED" value="false" force="true"/>
     </php>
 </phpunit>
