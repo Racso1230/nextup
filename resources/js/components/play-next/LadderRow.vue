@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import GameCover from '@/components/library/GameCover.vue';
+import PickActions from '@/components/play-next/PickActions.vue';
+import { usePickFeedback } from '@/lib/pickFeedback';
 import type { Pick } from '@/types/play-next';
 
 const props = defineProps<{ pick: Pick }>();
 
 const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
+const { busy, send } = usePickFeedback(() => props.pick.entry_id);
 </script>
 
 <template>
@@ -27,6 +30,14 @@ const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
             >
                 {{ pick.explanation }}
             </p>
+            <PickActions
+                class="mt-2"
+                :name="pick.name"
+                :busy="busy"
+                variant="row"
+                @not-tonight="send('not_tonight')"
+                @never="send('never')"
+            />
         </div>
         <div class="flex shrink-0 flex-col items-end gap-2">
             <p class="font-mono text-text tabular-nums">
@@ -36,6 +47,7 @@ const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
             <a
                 :href="steamUrl"
                 :aria-label="`Play ${pick.name} on Steam`"
+                @click="send('playing')"
                 class="rounded-[2px] text-sm text-text-muted underline underline-offset-4 hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >Play</a
             >
