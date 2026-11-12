@@ -16,6 +16,12 @@ Schedule::command('library:queue-nightly')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Demo accounts live for 24 hours (and are deleted on logout). The shared catalogue games stay.
+Schedule::command('demo:prune')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Retry unmatched games that are due, and refresh stale metadata. Both jobs are globally unique and
 // rate limited, so an hourly dispatch is cheap when there is nothing to do.
 Schedule::command('igdb:sync')

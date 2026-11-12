@@ -10,6 +10,7 @@ use App\Models\LibraryEntry;
 use App\Models\RecommendationPick;
 use App\Models\User;
 use App\Recommendations\LatestRecommendations;
+use App\Recommendations\PickSignals;
 use App\Steam\SteamCdn;
 use App\Steam\SteamPrivacy;
 use Inertia\Inertia;
@@ -18,22 +19,6 @@ use Inertia\Response;
 class PlayNextController extends Controller
 {
     private const int MAX_PICKS = 10;
-
-    /** The signals shown as bars on the top pick, in order, with their labels. The mismatch and snooze penalties are left out. */
-    private const array SIGNAL_LABELS = [
-        'taste' => 'Taste match',
-        'momentum' => 'Momentum',
-        'fit' => 'Fits tonight',
-        // Null (so left out) when no mood is chosen. The snooze penalty is never shown, like mismatch.
-        'mood' => 'Mood match',
-        // Null (left out) when the friends list is private; hidden at 0 like freshness.
-        'social' => 'Friends',
-        // Covers both "never started" (1.0) and "tried once, never went back" (0.5).
-        'freshness' => 'Fresh start',
-    ];
-
-    /** Freshness and friends are nudges: a 0 bar would read as a claim, so they are only shown when they apply. */
-    private const array HIDE_WHEN_ZERO = ['freshness', 'social'];
 
     public function index(PlayNextRequest $request, LatestRecommendations $latest): Response
     {
@@ -97,35 +82,11 @@ class PlayNextController extends Controller
         ];
 
         if ($top) {
-            $row['signals'] = $this->signals($pick);
+            $row['signals'] = PickSignals::from(
+                array_map(fn (array $c): ?float => $c['value'] === null ? null : (float) $c['value'], $pick->contributions),
+            );
         }
 
         return $row;
-    }
-
-    /**
-     * @return list<array{key: string, label: string, value: float}>
-     */
-    private function signals(RecommendationPick $pick): array
-    {
-        $signals = [];
-
-        foreach (self::SIGNAL_LABELS as $key => $label) {
-            $value = $pick->contributions[$key]['value'] ?? null;
-
-            if ($value === null) {
-                continue;
-            }
-
-            $value = max(0.0, min(1.0, (float) $value));
-
-            if ($value === 0.0 && in_array($key, self::HIDE_WHEN_ZERO, true)) {
-                continue;
-            }
-
-            $signals[] = ['key' => $key, 'label' => $label, 'value' => $value];
-        }
-
-        return $signals;
     }
 }

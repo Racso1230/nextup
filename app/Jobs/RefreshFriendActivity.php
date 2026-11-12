@@ -61,6 +61,11 @@ class RefreshFriendActivity implements ShouldBeUniqueUntilProcessing, ShouldQueu
     {
         $user = $this->user;
 
+        // Demo accounts have invented friend counts and never talk to Steam.
+        if ($user->is_demo) {
+            return;
+        }
+
         try {
             $friendIds = $steam->friendIds($user->steam_id);
 

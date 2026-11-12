@@ -40,7 +40,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 // Only what the shell needs. Never share the whole model (steam_id stays server side).
-                'user' => $request->user()?->only(['id', 'persona_name', 'avatar_url', 'profile_url']),
+                'user' => $request->user()?->only(['id', 'persona_name', 'avatar_url', 'profile_url', 'is_demo']),
             ],
         ];
     }

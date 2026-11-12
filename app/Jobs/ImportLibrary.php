@@ -64,6 +64,12 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
     public function handle(SteamClient $steam, RecordPlaytimeSnapshots $snapshots, IgdbStatus $igdb): void
     {
         $user = $this->user;
+
+        // Demo libraries are seeded from a fixture. Belt and braces: they are never queued in the first place.
+        if ($user->is_demo) {
+            return;
+        }
+
         $user->update(['import_status' => ImportStatus::Running]);
 
         try {

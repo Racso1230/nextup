@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $persona_name
  * @property string|null $avatar_url
  * @property string|null $profile_url
+ * @property bool $is_demo A throwaway demo account: never sent to Steam or IGDB, deleted after 24 hours.
  * @property LibraryVisibility $library_visibility
  * @property ImportStatus $import_status
  * @property Carbon|null $imported_at
@@ -42,6 +43,7 @@ class User extends Authenticatable
     protected $attributes = [
         'library_visibility' => 'unknown',
         'import_status' => 'idle',
+        'is_demo' => false,
     ];
 
     /**
@@ -53,6 +55,7 @@ class User extends Authenticatable
     {
         return [
             'steam_id' => 'string',
+            'is_demo' => 'boolean',
             'library_visibility' => LibraryVisibility::class,
             'import_status' => ImportStatus::class,
             'imported_at' => 'datetime',
