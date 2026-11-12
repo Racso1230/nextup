@@ -227,7 +227,7 @@ it('loads a big tagged library in a bounded number of queries', function () {
 
     expect($library)->toHaveCount(100)
         ->and($library[0]->tags)->toHaveCount(5)
-        ->and($queries)->toBeLessThanOrEqual(6);
+        ->and($queries)->toBeLessThanOrEqual(8);
 });
 
 describe('session and feedback', function () {

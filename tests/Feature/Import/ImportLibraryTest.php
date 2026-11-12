@@ -20,6 +20,7 @@ const IMPORT_KEY = 'TESTKEY0123456789ABCDEF';
 function fakeSteam(string $owned = 'owned_games_public', string $summary = 'player_summaries_public'): void
 {
     Http::fake([
+        '*GetFriendList*' => Http::response('', 401),
         '*GetPlayerSummaries*' => Http::response(SteamFixtures::load($summary)),
         '*GetOwnedGames*' => Http::response(SteamFixtures::load($owned)),
     ]);
@@ -72,6 +73,7 @@ it('upserts on a re-run without duplicates and updates playtime', function () {
     $user = User::factory()->create();
     $body = SteamFixtures::load('owned_games_public');
     Http::fake([
+        '*GetFriendList*' => Http::response('', 401),
         '*GetPlayerSummaries*' => Http::response(SteamFixtures::load('player_summaries_public')),
         '*GetOwnedGames*' => function () use (&$body) {
             return Http::response($body);

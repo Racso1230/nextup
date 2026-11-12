@@ -3,6 +3,7 @@
 namespace App\Recommendations;
 
 use App\Enums\MatchStatus;
+use App\Models\FriendActivity;
 use App\Models\User;
 use App\Recommender\Feedback;
 use App\Recommender\GameFacts;
@@ -27,6 +28,8 @@ final class LibraryContextFactory
         $entries = $user->libraryEntries()->with('game.tags')->get();
         $recent = $this->recentMinutes($user, $entries->isNotEmpty(), $now);
 
+        $friends = $this->friendCounts($user);
+
         $library = [];
 
         foreach ($entries as $entry) {
@@ -49,6 +52,7 @@ final class LibraryContextFactory
                 lastPlayedAt: $entry->last_played_at?->toDateTimeImmutable(),
                 ttbNormallySeconds: $game->ttb_normally,
                 tags: $tags,
+                friendsPlayedRecently: $friends === null ? null : ($friends[$game->steam_appid] ?? 0),
             );
         }
 
@@ -59,6 +63,24 @@ final class LibraryContextFactory
             session: $session ?? SessionContext::default(),
             feedback: $this->latestFeedback($user),
         );
+    }
+
+    /**
+     * Friends who played each game recently, keyed by steam appid. Null when the user has no friend activity
+     * rows at all (friends list private, or not fetched yet), so the social signal stays null. When there are
+     * rows, a game without one was played by no friend, which is a real 0.
+     *
+     * @return array<int, int>|null
+     */
+    private function friendCounts(User $user): ?array
+    {
+        $counts = [];
+
+        foreach (FriendActivity::where('user_id', $user->id)->get(['steam_appid', 'friends_played']) as $row) {
+            $counts[$row->steam_appid] = $row->friends_played;
+        }
+
+        return $counts === [] ? null : $counts;
     }
 
     /**

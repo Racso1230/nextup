@@ -83,4 +83,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(PickFeedback::class);
     }
+
+    /**
+     * @return HasMany<FriendActivity, $this>
+     */
+    public function friendActivity(): HasMany
+    {
+        return $this->hasMany(FriendActivity::class);
+    }
 }
