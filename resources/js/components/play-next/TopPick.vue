@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import PickActions from '@/components/play-next/PickActions.vue';
 import SignalBar from '@/components/play-next/SignalBar.vue';
 import { initialsOf } from '@/lib/format';
+import { usePickFeedback } from '@/lib/pickFeedback';
 import type { Pick } from '@/types/play-next';
 
 const props = defineProps<{ pick: Pick }>();
@@ -18,6 +20,7 @@ const showCover = computed(
     () => props.pick.cover_url !== null && !coverFailed.value,
 );
 const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
+const { busy, send } = usePickFeedback(() => props.pick.entry_id);
 </script>
 
 <template>
@@ -72,8 +75,10 @@ const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
             </div>
 
             <div class="flex flex-col items-start gap-1">
+                <!-- No preventDefault: the click records "playing" and the steam:// link opens as usual. -->
                 <a
                     :href="steamUrl"
+                    @click="send('playing')"
                     :aria-label="`Play ${pick.name} on Steam`"
                     class="inline-flex h-10 items-center rounded-md bg-accent px-5 font-semibold text-accent-ink transition-colors duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
@@ -81,6 +86,14 @@ const steamUrl = computed(() => `steam://run/${props.pick.app_id}`);
                 </a>
                 <p class="text-sm text-text-muted">Opens the Steam app</p>
             </div>
+
+            <PickActions
+                :name="pick.name"
+                :busy="busy"
+                variant="card"
+                @not-tonight="send('not_tonight')"
+                @never="send('never')"
+            />
         </div>
     </li>
 </template>

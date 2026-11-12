@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Actions\QueueLibraryImport;
 use App\Enums\ImportStatus;
+use App\Jobs\RefreshFriendActivity;
 use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -28,6 +29,14 @@ class QueueNightlyImports extends Command
                     $queued++;
                 }
             });
+
+        // Friend activity is refreshed for everyone, after the imports are queued. The job is unique per user
+        // and rate limited, and a private friends list costs a single call.
+        User::query()->chunkById(100, function ($users): void {
+            foreach ($users as $user) {
+                RefreshFriendActivity::dispatch($user);
+            }
+        });
 
         $this->info("Queued {$queued} library imports.");
 

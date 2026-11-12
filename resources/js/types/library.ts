@@ -1,4 +1,6 @@
 export type LibraryStatus = 'unplayed' | 'recent' | 'played';
+/** A status filter segment: a derived status, or the hidden (never suggest) games. */
+export type LibraryStatusFilter = LibraryStatus | 'hidden';
 export type SortColumn = 'name' | 'playtime' | 'last_played' | 'status';
 export type SortDirection = 'asc' | 'desc';
 
@@ -20,6 +22,8 @@ export type LibraryRow = {
     /** ISO 8601, or null when the game was never played. */
     last_played_at: string | null;
     status: LibraryStatus;
+    /** True when the latest feedback is "never suggest". */
+    hidden: boolean;
 };
 
 export type LibraryPage = {
@@ -38,7 +42,8 @@ export type StatusCounts = Record<LibraryStatus | 'all', number>;
 export type LibraryFilters = {
     sort: SortColumn;
     direction: SortDirection;
-    status: LibraryStatus | null;
+    /** A derived status, `hidden` for never-suggested games, or null for all. */
+    status: LibraryStatus | 'hidden' | null;
     q: string | null;
 };
 

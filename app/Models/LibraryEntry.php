@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FeedbackKind;
 use App\Enums\LibraryStatus;
 use Database\Factories\LibraryEntryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -110,6 +111,27 @@ class LibraryEntry extends Model
     public function snapshots(): HasMany
     {
         return $this->hasMany(PlaytimeSnapshot::class);
+    }
+
+    /**
+     * @return HasMany<PickFeedback, $this>
+     */
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(PickFeedback::class);
+    }
+
+    /**
+     * Entries whose latest feedback is "never suggest".
+     *
+     * @param  Builder<LibraryEntry>  $query
+     */
+    #[Scope]
+    protected function neverSuggested(Builder $query): void
+    {
+        $query->whereHas('feedback', fn ($feedback) => $feedback
+            ->latestPerEntry()
+            ->where('kind', FeedbackKind::Never->value));
     }
 
     /**

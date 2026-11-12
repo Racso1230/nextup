@@ -13,6 +13,7 @@ use Tests\Support\SteamFixtures;
 function snapshotImport(User $user, string $owned = 'owned_games_public'): void
 {
     Http::fake([
+        '*GetFriendList*' => Http::response('', 401),
         '*GetPlayerSummaries*' => Http::response(SteamFixtures::load('player_summaries_public')),
         '*GetOwnedGames*' => Http::response(SteamFixtures::load($owned)),
     ]);

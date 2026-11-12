@@ -17,6 +17,7 @@ final readonly class Profile
      * @param  array<string, float>  $droppedVector  tag key => summed tag weight of dropped games
      * @param  array<int, array<string, float>>  $droppedContributions  entryId => that game's share of the dropped vector
      * @param  int  $playedCount  played games that contributed to taste
+     * @param  array<int, Feedback>  $feedback  entryId => the latest feedback on that game
      */
     public function __construct(
         public array $idf,
@@ -26,5 +27,12 @@ final readonly class Profile
         public array $droppedContributions,
         public int $playedCount,
         public DateTimeImmutable $now,
+        public SessionContext $session = new SessionContext,
+        public array $feedback = [],
     ) {}
+
+    public function feedbackFor(int $entryId): ?Feedback
+    {
+        return $this->feedback[$entryId] ?? null;
+    }
 }

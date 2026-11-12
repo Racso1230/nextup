@@ -37,7 +37,7 @@ final class ProfileBuilder
             }
         }
 
-        return new Profile($idf, $taste, $tasteContributions, $dropped, $droppedContributions, $playedCount, $context->now);
+        return new Profile($idf, $taste, $tasteContributions, $dropped, $droppedContributions, $playedCount, $context->now, $context->session, $context->feedback);
     }
 
     /**

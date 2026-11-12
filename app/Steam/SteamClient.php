@@ -64,10 +64,89 @@ final class SteamClient
     }
 
     /**
+     * The user's friends as SteamID64 strings, or null when the list is private (Steam answers 401).
+     * Callers must treat these ids as personal data: aggregate them, never store or log them.
+     *
+     * @return list<string>|null
+     */
+    public function friendIds(string $steamId): ?array
+    {
+        $body = $this->getOrNull(
+            'GetFriendList',
+            'ISteamUser/GetFriendList/v1/',
+            ['steamid' => $steamId, 'relationship' => 'friend'],
+            privateOn: [401, 403],
+        );
+
+        $list = $body['friendslist'] ?? null;
+        $friends = is_array($list) ? ($list['friends'] ?? null) : null;
+
+        if (! is_array($friends)) {
+            return null;
+        }
+
+        $ids = [];
+
+        foreach ($friends as $friend) {
+            $id = is_array($friend) ? ($friend['steamid'] ?? null) : null;
+
+            if (is_string($id) && ctype_digit($id)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Appids the player played in the last two weeks, or null when their profile hides it (Steam then
+     * returns an empty `response`, or 401/403). A public profile with no recent play returns an empty list.
+     *
+     * @return list<int>|null
+     */
+    public function recentlyPlayedAppIds(string $steamId): ?array
+    {
+        $body = $this->getOrNull(
+            'GetRecentlyPlayedGames',
+            'IPlayerService/GetRecentlyPlayedGames/v1/',
+            ['steamid' => $steamId],
+            privateOn: [401, 403],
+        );
+
+        $response = $body['response'] ?? null;
+
+        if (! is_array($response) || ! array_key_exists('total_count', $response)) {
+            return null;
+        }
+
+        $ids = [];
+
+        foreach (is_array($response['games'] ?? null) ? $response['games'] : [] as $game) {
+            $appId = is_array($game) ? ($game['appid'] ?? null) : null;
+
+            if (is_int($appId) && $appId > 0) {
+                $ids[] = $appId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
      * @param  array<string, string|int>  $params
      * @return array<array-key, mixed>
      */
     private function get(string $endpoint, string $path, array $params): array
+    {
+        return $this->getOrNull($endpoint, $path, $params) ?? throw SteamApiException::unexpectedResponse($endpoint);
+    }
+
+    /**
+     * @param  array<string, string|int>  $params
+     * @param  list<int>  $privateOn  statuses that mean "private", answered with null instead of an exception
+     * @return array<array-key, mixed>|null
+     */
+    private function getOrNull(string $endpoint, string $path, array $params, array $privateOn = []): ?array
     {
         if ($this->key === '') {
             throw SteamApiException::missingKey($endpoint);
@@ -82,6 +161,10 @@ final class SteamClient
         } catch (ConnectionException) {
             // Deliberately not chained: its message and trace args can hold the full URL with the key.
             throw SteamApiException::connectionFailed($endpoint);
+        }
+
+        if (in_array($response->status(), $privateOn, true)) {
+            return null;
         }
 
         $this->guard($endpoint, $response);

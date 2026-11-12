@@ -2,6 +2,36 @@
 
 Each entry gives what was decided, why, and what was rejected. Newest first.
 
+## 2026-11-12: Session context and feedback (Phase 4)
+
+**What:** four approved choices, specified in `docs/recommender.md` under "Session context and feedback":
+
+- **Time available:** fit's half-point becomes 5 times the hours the user has. Two hours reproduces v1 exactly.
+- **Mood:** a tag-based boost signal (weight 0.15), with a neutral 0.5 for games with no mood tags.
+- **Solo or with friends:** a filter on IGDB game modes. Games with no mode data are never hidden.
+- **Feedback:**
+    - "Never suggest" hides a game until undone.
+    - "Not tonight" hides it for 24 hours, then a snooze penalty fades over about a week.
+    - "Playing it" counts as full momentum for 3 days.
+
+**Why:**
+
+- **Each rule degrades to neutral when data is missing.** No mood tags, no mode data and no time to beat all
+  leave the ranking as it would otherwise be.
+- **The 2-hour default keeps Phase 3's ranking as the baseline,** so the change is measurable in Phase 5.
+- **Feedback must visibly change the next list** (PLAN's done criterion), so any feedback newer than the cached
+  run forces a fresh ranking.
+
+**Rejected:**
+
+- Half-point equal to the available hours (it buries every long game).
+- A hard time filter.
+- A mood filter (it misclassifies games with mixed tags).
+- A boost-only friends toggle (a single-player RPG could still top a "with friends" list).
+- "Never" as a penalty rather than an exclusion (the user said never).
+
+**Privacy:** the friends signal stores only how many friends played each game, never who.
+
 ## 2026-11-11: Recommender v1 works around what Steam can't tell us
 
 **What:** four approved choices in `docs/recommender.md`:

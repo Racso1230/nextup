@@ -107,6 +107,11 @@ class ImportLibrary implements ShouldBeUniqueUntilProcessing, ShouldQueue
             ])->save();
         });
 
+        // A new user gets the friends signal the same day instead of waiting for the nightly run.
+        if (! $user->friendActivity()->exists()) {
+            RefreshFriendActivity::dispatch($user);
+        }
+
         // New games need IGDB ids. The job is globally unique, so simultaneous imports share one run.
         if ($igdb->configured()) {
             MatchGames::dispatch();

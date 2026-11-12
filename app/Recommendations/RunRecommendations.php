@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Recommender\Contribution;
 use App\Recommender\Explainer;
 use App\Recommender\Recommender;
+use App\Recommender\SessionContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -28,20 +29,22 @@ final class RunRecommendations
      * Returns null, and stores nothing, when the user has no candidates (empty or private library, or
      * everything unmatched or finished).
      */
-    public function __invoke(User $user): ?RecommendationRun
+    public function __invoke(User $user, ?SessionContext $session = null): ?RecommendationRun
     {
-        $context = $this->contexts->build($user, CarbonImmutable::now('UTC'));
+        $session ??= SessionContext::default();
+        $context = $this->contexts->build($user, CarbonImmutable::now('UTC'), $session);
         $ranked = $this->recommender->rank($context);
 
         if ($ranked === []) {
             return null;
         }
 
-        return DB::transaction(function () use ($user, $context, $ranked): RecommendationRun {
+        return DB::transaction(function () use ($user, $context, $ranked, $session): RecommendationRun {
             $run = RecommendationRun::create([
                 'user_id' => $user->id,
                 'weights' => $this->weights($ranked[0]->contributions),
                 'candidate_count' => count($ranked),
+                'context' => $session->toArray(),
             ]);
 
             $rows = [];

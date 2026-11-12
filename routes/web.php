@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Auth\SteamLoginController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\LibraryImportController;
+use App\Http\Controllers\PickFeedbackController;
 use App\Http\Controllers\PlayNextController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,14 @@ Route::middleware('auth')->group(function () {
     Route::post('library/import', [LibraryImportController::class, 'store'])
         ->middleware('throttle:3,1')
         ->name('library.import');
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('picks/{libraryEntry}/feedback', [PickFeedbackController::class, 'store'])
+            ->whereNumber('libraryEntry')
+            ->name('picks.feedback');
+        Route::delete('picks/{libraryEntry}/feedback', [PickFeedbackController::class, 'destroy'])
+            ->whereNumber('libraryEntry')
+            ->name('picks.feedback.destroy');
+    });
     Route::get('account', [AccountController::class, 'show'])->name('account');
     Route::delete('account', [AccountController::class, 'destroy'])->name('account.destroy');
     Route::post('logout', [SessionController::class, 'destroy'])->name('logout');

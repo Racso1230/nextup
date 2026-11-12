@@ -79,6 +79,27 @@ test('only the top pick carries signals, without null values or the mismatch pen
             ->missing('picks.9.signals'));
 });
 
+test('a friends bar appears when friends played the game, and not at zero', function () {
+    $user = User::factory()->create();
+    $run = storedRun($user, 1);
+    $pick = $run->picks()->firstOrFail();
+    $pick->update(['contributions' => array_merge($pick->contributions, [
+        'social' => ['value' => 2 / 3, 'weight' => 0.1, 'weighted' => 0.0667],
+    ])]);
+
+    $this->actingAs($user)->get(route('play-next'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('picks.0.signals.2', ['key' => 'social', 'label' => 'Friends', 'value' => 2 / 3]));
+
+    $pick->update(['contributions' => array_merge($pick->contributions, [
+        'social' => ['value' => 0.0, 'weight' => 0.1, 'weighted' => 0.0],
+    ])]);
+
+    $keys = collect($this->actingAs($user)->get(route('play-next'))->inertiaProps('picks.0.signals'))->pluck('key');
+
+    expect($keys)->not->toContain('social');
+});
+
 test('a zero freshness bar is hidden, because it would read as a claim', function () {
     $user = User::factory()->create();
     $run = storedRun($user, 1);
@@ -168,4 +189,15 @@ test('it shows the nothing state when entries exist but none can be suggested', 
 
     $this->actingAs($user)->get(route('play-next'))
         ->assertInertia(fn (Assert $page) => $page->where('state', 'nothing')->where('picks', []));
+});
+
+test('it passes the session context to the page as filters', function () {
+    $user = User::factory()->create();
+    storedRun($user);
+
+    $this->actingAs($user)->get(route('play-next'))
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 2, 'mood' => null, 'with' => null]));
+
+    $this->actingAs($user)->get(route('play-next', ['hours' => 1, 'mood' => 'chill', 'with' => 'friends']))
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['hours' => 1, 'mood' => 'chill', 'with' => 'friends']));
 });

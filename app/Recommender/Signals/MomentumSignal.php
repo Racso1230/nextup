@@ -2,6 +2,7 @@
 
 namespace App\Recommender\Signals;
 
+use App\Enums\FeedbackKind;
 use App\Recommender\Days;
 use App\Recommender\GameFacts;
 use App\Recommender\Params;
@@ -21,6 +22,15 @@ final class MomentumSignal implements Signal
 
     public function score(GameFacts $candidate, Profile $profile): float
     {
+        // The user said "Playing it": full momentum for a few days, even before Steam or snapshots show it.
+        $feedback = $profile->feedbackFor($candidate->entryId);
+
+        if ($feedback !== null
+            && $feedback->kind === FeedbackKind::Playing
+            && $feedback->hoursAgo($profile->now) < Params::PLAYING_MOMENTUM_DAYS * 24) {
+            return 1.0;
+        }
+
         if (! $candidate->isPlayed()) {
             return 0.0;
         }

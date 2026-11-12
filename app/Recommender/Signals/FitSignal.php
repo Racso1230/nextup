@@ -33,7 +33,10 @@ final class FitSignal implements Signal
 
         $remainingHours = $candidate->ttbNormallySeconds / 3600 - $candidate->playtimeHours();
 
-        return 1 / (1 + $remainingHours / Params::FIT_HALF_HOURS);
+        // The half-point scales with the time the user has tonight: 2 hours gives v1's 10 hours.
+        $halfPoint = Params::FIT_HALF_HOURS_PER_AVAILABLE_HOUR * $profile->session->hours;
+
+        return 1 / (1 + $remainingHours / $halfPoint);
     }
 
     public static function pastTimeToBeat(GameFacts $game): bool

@@ -1,6 +1,12 @@
 import type { ImportInfo, PrivacyInfo } from '@/types/library';
 
-export type SignalKey = 'taste' | 'momentum' | 'fit' | 'freshness';
+export type SignalKey =
+    | 'taste'
+    | 'momentum'
+    | 'fit'
+    | 'mood'
+    | 'social'
+    | 'freshness';
 
 export type PickSignal = {
     key: SignalKey;
@@ -32,8 +38,20 @@ export type PlayNextState =
     | 'empty'
     | 'nothing';
 
+export type PlayNextHours = 1 | 2 | 4 | 6;
+export type PlayNextMood = 'chill' | 'intense';
+export type PlayNextCompany = 'solo' | 'friends';
+
+/** The session controls as the server read them from the query string. */
+export type PlayNextFilters = {
+    hours: PlayNextHours;
+    mood: PlayNextMood | null;
+    with: PlayNextCompany | null;
+};
+
 export type PlayNextProps = {
     picks: Pick[];
+    filters: PlayNextFilters;
     ranked_at: string | null;
     state: PlayNextState;
     privacy: PrivacyInfo | null;

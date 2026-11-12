@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp } from '@lucide/vue';
 import GameCover from '@/components/library/GameCover.vue';
+import HiddenNote from '@/components/library/HiddenNote.vue';
 import GameTags from '@/components/library/GameTags.vue';
 import LastPlayed from '@/components/library/LastPlayed.vue';
 import PlaytimeValue from '@/components/library/PlaytimeValue.vue';
@@ -96,6 +97,11 @@ function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
                         <span class="flex min-w-0 flex-col gap-1">
                             <span class="text-text">{{ row.name }}</span>
                             <GameTags :row="row" />
+                            <HiddenNote
+                                v-if="row.hidden"
+                                :entry-id="row.id"
+                                :name="row.name"
+                            />
                         </span>
                     </span>
                 </td>
@@ -129,6 +135,11 @@ function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
                     row.name
                 }}</span>
                 <GameTags :row="row" />
+                <HiddenNote
+                    v-if="row.hidden"
+                    :entry-id="row.id"
+                    :name="row.name"
+                />
                 <span
                     class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
                 >

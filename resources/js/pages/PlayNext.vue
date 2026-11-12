@@ -2,6 +2,7 @@
 import { Head, Link, usePoll } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import PrivateLibrary from '@/components/library/PrivateLibrary.vue';
+import ContextControls from '@/components/play-next/ContextControls.vue';
 import LadderRow from '@/components/play-next/LadderRow.vue';
 import TopPick from '@/components/play-next/TopPick.vue';
 import { formatRelative } from '@/lib/format';
@@ -52,6 +53,11 @@ const rest = computed(() => props.picks.slice(1));
                 >.
             </p>
         </div>
+
+        <ContextControls
+            v-if="state === 'ready' || state === 'nothing'"
+            :filters="filters"
+        />
 
         <ol v-if="state === 'ready' && top" class="flex flex-col gap-6">
             <TopPick :pick="top" />

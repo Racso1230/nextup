@@ -91,6 +91,10 @@ Phase 4 replaces the 10-hour constant with the time the user says they have.
 
 ### Social
 
+**Phase 4:** when the user's friends list is public, social = `min(1, friends who played the game in the last two
+weeks / 3)`. Only aggregate counts per game are stored, never the friends' identities. Private friends list:
+null, exactly as v1.
+
 Friends who played the game recently. Friends arrive in Phase 4, so in v1 this is **null** for everyone. A null
 signal contributes nothing to the score and never appears in an explanation. A signal that is null for every
 candidate can't change the ranking, so this is safe.
@@ -122,6 +126,53 @@ score = 0.35·taste + 0.20·momentum + 0.15·fit + 0.10·social + 0.10·fresh �
 
 Starting weights from `PLAN.md`, read from `config/recommender.php`. Null signals contribute 0. Phase 5 tunes the
 weights against the leave-one-out and time-split evaluations.
+
+Phase 4 adds two terms (below): `+ 0.15·mood − 0.20·snooze`.
+
+## Session context and feedback (Phase 4)
+
+Approved by Oscar on 2026-11-12. The user can tell the page three things about tonight, and react to each pick.
+
+### How long have you got?
+
+Choices: 1 hour, 2 hours, 4 hours, all evening (6 hours). Default: 2 hours.
+
+- **Fit** keeps its formula, but the half-point becomes **5 × the available hours** instead of a fixed 10.
+  `fit = 1 / (1 + remaining_hours / (5 × available))`. With 2 hours this is exactly the v1 behaviour; with 1 hour,
+  short games win more clearly; with 4 hours, long games are penalised less.
+- Unknown time to beat, and played past it, stay neutral at 0.5.
+
+### Mood (chill or intense)
+
+A new **mood** signal, weight 0.15. Unset mood means the signal is null for everyone (no effect).
+
+- Two lists of IGDB tags, by `(type, id)`, in `Params`:
+    - **Intense**: genres Fighting, Shooter, Racing, Tactical, Hack and slash, MOBA; themes Action, Horror,
+      Thriller, Survival, Warfare; game mode Battle Royale.
+    - **Chill**: genres Point-and-click, Music, Puzzle, Simulator, Strategy, Turn-based strategy, Quiz, Pinball,
+      Visual novel, Card and board game; themes Comedy, Business, Sandbox, Educational, Kids, Party, 4X.
+- `mood = matches in the chosen list / (matches in either list)`. A game with no tags in either list scores a
+  **neutral 0.5**, so missing data never counts against it.
+
+### Solo or with friends
+
+A **filter** on IGDB game modes, applied to candidates. Games with no mode data are never hidden.
+
+- **With friends**: hide games that have mode data but none of Multiplayer, Co-operative, Split screen, MMO,
+  Battle Royale.
+- **Solo**: hide games that have mode data but no Single player mode (multiplayer-only games).
+- Unset: no filter.
+
+### Feedback on a pick
+
+| Button            | Effect                                                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Playing it**    | Opens Steam. For 3 days the game's momentum is 1.0 (the user told us; snapshots will confirm).                                                                      |
+| **Not tonight**   | Hidden for 24 hours. After that a **snooze** penalty (weight 0.20, subtracted) of `exp(−(days − 1) / 2)` fades it back: 1.0 on day 1, 0.37 on day 3, 0.05 on day 7. |
+| **Never suggest** | Excluded until undone from the library.                                                                                                                             |
+
+Only the latest feedback per game counts. Feedback newer than the cached run makes the next page view rank
+afresh, so a click always visibly changes the list.
 
 ## Explanations
 

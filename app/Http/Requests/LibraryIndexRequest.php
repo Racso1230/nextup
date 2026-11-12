@@ -15,6 +15,9 @@ class LibraryIndexRequest extends FormRequest
 
     public const int MAX_QUERY_LENGTH = 100;
 
+    /** The extra `status` value for never-suggested games (not a derived status). */
+    public const string HIDDEN = 'hidden';
+
     public function authorize(): bool
     {
         return true;
@@ -49,11 +52,18 @@ class LibraryIndexRequest extends FormRequest
         };
     }
 
+    /** The derived-status filter; null for no filter or for the separate "hidden" view. */
     public function statusFilter(): ?LibraryStatus
     {
         $value = $this->rawString('status');
 
         return $value === null ? null : LibraryStatus::tryFrom($value);
+    }
+
+    /** True for `status=hidden`: only the games the user said never to suggest. */
+    public function hiddenOnly(): bool
+    {
+        return $this->rawString('status') === self::HIDDEN;
     }
 
     /** The trimmed search text, or null when empty or too long to be real. */
