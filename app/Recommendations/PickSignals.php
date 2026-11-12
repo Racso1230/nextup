@@ -21,8 +21,11 @@ final class PickSignals
         'freshness' => 'Fresh start',
     ];
 
-    /** Freshness and friends are nudges: a 0 bar would read as a claim, so they are only shown when they apply. */
-    private const array HIDE_WHEN_ZERO = ['freshness', 'social'];
+    /**
+     * A 0 bar would read as a claim ("no momentum", "no friends"), so these are only shown when they apply.
+     * Momentum is 0 for a game that was never played, which is exactly when it is most likely to be picked.
+     */
+    private const array HIDE_WHEN_ZERO = ['momentum', 'freshness', 'social'];
 
     /**
      * @param  array<string, float|null>  $values  signal key => value (0 to 1), null when it didn't apply

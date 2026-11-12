@@ -29,7 +29,7 @@ final class HeroPick
     /** Picks after the top one, for the shuffling cover stack. */
     public const int NEXT_PICKS = 4;
 
-    private const string CACHE_KEY = 'demo.hero-pick.v1';
+    private const string CACHE_KEY = 'demo.hero-pick.v2';
 
     private const int CACHE_SECONDS = 3600;
 

@@ -41,14 +41,14 @@ it('shows the same signal bars as the Play next top pick', function () {
     $keys = array_column($hero['signals'], 'key');
 
     expect($keys)->toContain('taste')
-        // Mood is null without a chosen mood, and zero freshness or friends bars are left out.
+        // Mood is null without a chosen mood, and zero momentum, freshness or friends bars are left out.
         ->and($keys)->not->toContain('mood', 'mismatch', 'snooze');
 
     foreach ($hero['signals'] as $signal) {
         expect($signal['value'])->toBeBetween(0.0, 1.0)
             ->and($signal['label'])->not->toBeEmpty();
 
-        if (in_array($signal['key'], ['freshness', 'social'], true)) {
+        if (in_array($signal['key'], ['momentum', 'freshness', 'social'], true)) {
             expect($signal['value'])->toBeGreaterThan(0.0);
         }
     }
@@ -77,11 +77,11 @@ it('caches the pick for an hour', function () {
     $first = app(HeroPick::class)();
 
     $this->travel(59)->minutes();
-    expect(Cache::has('demo.hero-pick.v1'))->toBeTrue()
+    expect(Cache::has('demo.hero-pick.v2'))->toBeTrue()
         ->and(app(HeroPick::class)())->toBe($first);
 
     $this->travel(2)->minutes();
-    expect(Cache::has('demo.hero-pick.v1'))->toBeFalse();
+    expect(Cache::has('demo.hero-pick.v2'))->toBeFalse();
 });
 
 it('renders the landing page for signed-in users too, without leaking account details', function () {
