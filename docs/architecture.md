@@ -150,3 +150,19 @@ per signal `{value, weight, weighted}`), `explanation` (text), with unique `(rec
 Only the top 20 picks of a run are stored. A run is reused while it is newer than the user's last import and
 less than 6 hours old; otherwise viewing the page computes a fresh one. Ranking reads only the database (no
 Steam or IGDB calls) and takes milliseconds, so it runs inside the request.
+
+### pick_feedback, run context and friend_activity (Phase 4)
+
+**pick_feedback**: `id`, `user_id` (FK users, cascade), `library_entry_id` (FK library_entries, cascade), `kind`
+(`playing`, `not_tonight` or `never`, backed by a PHP enum), `created_at`. Index `(user_id, library_entry_id,
+created_at)`. Every click is a row (history for Phase 5); the latest row per entry is what counts. Undoing "never"
+from the library adds no row; it deletes that entry's feedback rows.
+
+**recommendation_runs.context** (json, nullable): the session context the run was ranked with
+(`{hours, mood, company}`). A cached run is reused only when its context matches the request and no feedback is
+newer than the run.
+
+**friend_activity**: `id`, `user_id` (FK users, cascade), `steam_appid` (integer), `friends_played` (integer: how
+many friends played it in the last two weeks), `captured_on` (date). Unique `(user_id, steam_appid)`, replaced on
+each refresh. Only counts are stored, never friends' Steam ids or names. A private friends list stores nothing
+and the social signal stays null.
