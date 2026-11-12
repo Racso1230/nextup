@@ -135,7 +135,9 @@ Approved by Oscar on 2026-11-12. The user can tell the page three things about t
 
 ### How long have you got?
 
-Choices: 1 hour, 2 hours, 4 hours, all evening (6 hours). Default: 2 hours.
+Choices: any, 1 hour, 2 hours, 4 hours, all evening (6 hours). **Default: any, which leaves fit out (null)**. Phase 5
+showed that an always-on fit buried the long games people love (see `docs/decisions.md`, 2026-11-12, and
+`docs/eval/results.md`), so fit counts only when the user picks a time.
 
 - **Fit** keeps its formula, but the half-point becomes **5 × the available hours** instead of a fixed 10.
   `fit = 1 / (1 + remaining_hours / (5 × available))`. With 2 hours this is exactly the v1 behaviour; with 1 hour,
