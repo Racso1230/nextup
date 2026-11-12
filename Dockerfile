@@ -15,8 +15,17 @@ COPY composer.json composer.lock ./
 # Install first without the app code so Docker can cache this slow step.
 # --ignore-platform-reqs is safe: the image that runs the code (stage 4) has
 # the right PHP and extensions.
-RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction \
-    --prefer-dist --ignore-platform-reqs
+#
+# Downloads go through GitHub's API. When that API is down or timing out (as during
+# a GitHub incident on 2026-11-08, which stalled another site's build for 17 minutes
+# on a cold cache), the fast route gets two minutes and then falls back to cloning
+# from github.com (--prefer-source), which does not use the API.
+RUN timeout 120 composer install --no-dev --no-scripts --no-autoloader --no-interaction \
+        --prefer-dist --ignore-platform-reqs \
+    || ( echo "composer: the dist route did not finish, cloning from github.com instead" \
+         && rm -rf vendor \
+         && composer install --no-dev --no-scripts --no-autoloader --no-interaction \
+            --prefer-source --ignore-platform-reqs )
 COPY . .
 RUN composer dump-autoload --no-dev --optimize --no-scripts --ignore-platform-reqs
 
